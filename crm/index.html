@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#e30613">
+<title>CRM — EnvíoExpress</title>
+<link rel="icon" href="../icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div class="login-screen active" id="loginScreen">
+  <div class="login-card">
+    <div class="brand">envío<span>express</span></div>
+    <div class="sub">CRM del equipo · inicia sesión con la cuenta compartida</div>
+    <div class="field">
+      <label for="loginEmail">Correo</label>
+      <input type="email" id="loginEmail" placeholder="correo@equipo.com" autocomplete="username" inputmode="email">
+    </div>
+    <div class="field">
+      <label for="loginPass">Contraseña</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn primary" id="btnLogin" style="width:100%;margin-top:6px;" onclick="iniciarSesion()">Entrar</button>
+    <div class="login-status" id="loginStatus">Conectando con el servidor…</div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div class="app" id="app">
+
+  <!-- IZQUIERDA: MENÚ (~10%) -->
+  <aside class="col-menu">
+    <div class="brand">envío<span>express</span></div>
+    <button class="menu-item active" id="mi-clientes" onclick="irVista('clientes')">
+      <span class="ic">👥</span><span class="txt">Catálogo de Clientes</span>
+    </button>
+    <button class="menu-item" id="mi-speech" onclick="irVista('speech')">
+      <span class="ic">🎙️</span><span class="txt">Speech Flow</span>
+    </button>
+    <div class="menu-spacer"></div>
+    <div class="menu-user" id="menuUser"></div>
+    <button class="menu-item" onclick="cerrarSesion()">
+      <span class="ic">↩</span><span class="txt">Salir</span>
+    </button>
+  </aside>
+
+  <!-- CENTRO: CONTENIDO (~60%) -->
+  <main class="col-main">
+
+    <!-- VISTA: CATÁLOGO -->
+    <section class="view active" id="vista-clientes">
+      <div class="view-head">
+        <div class="view-title">Catálogo de Clientes<small id="clientesCount">0 clientes</small></div>
+        <div style="display:flex;gap:10px;">
+          <div class="search-box">
+            <span>🔎</span>
+            <input type="text" id="buscar" placeholder="Buscar por nombre, giro…" oninput="renderClientes()">
+          </div>
+          <button class="btn primary" onclick="abrirModalCliente()">+ Nuevo cliente</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Giro</th><th>Interacciones</th></tr>
+          </thead>
+          <tbody id="clientesBody"></tbody>
+        </table>
+      </div>
+      <div id="clientesEmpty"></div>
+    </section>
+
+    <!-- VISTA: DETALLE DE CLIENTE -->
+    <section class="view" id="vista-detalle">
+      <div class="view-head">
+        <div class="view-title" id="detNombre">Cliente</div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn ghost" onclick="irVista('clientes')">← Volver</button>
+          <button class="btn" onclick="editarClienteActual()">Editar</button>
+          <button class="btn primary" onclick="speechDesdeDetalle()">🎙️ Iniciar Speech Flow</button>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <div class="card">
+          <h3>Datos del cliente</h3>
+          <div id="detDatos"></div>
+          <button class="btn danger sm" style="margin-top:1rem;" onclick="eliminarClienteActual()">Eliminar cliente</button>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <h3 style="margin:0;">Interacciones</h3>
+            <button class="btn sm" onclick="abrirModalInteraccion()">+ Registrar</button>
+          </div>
+          <div class="timeline" id="detTimeline"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA: SPEECH FLOW -->
+    <section class="view" id="vista-speech">
+
+      <!-- Selección de cliente -->
+      <div id="speechPick">
+        <div class="view-head"><div class="view-title">Speech Flow<small>Elige el cliente al que vas a llamar</small></div></div>
+        <div class="speech-pick">
+          <div class="field">
+            <label for="speechCliente">Cliente</label>
+            <select id="speechCliente"></select>
+          </div>
+          <button class="btn primary" onclick="iniciarSpeech()">Comenzar llamada →</button>
+          <p style="color:var(--muted);font-size:13px;margin-top:12px;">
+            ¿No está en la lista? <a href="#" style="color:var(--brand);font-weight:600;" onclick="abrirModalCliente();return false;">Registra un cliente nuevo</a>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Guía de llamada -->
+      <div id="speechGuide" style="display:none;">
+        <div class="client-bar">
+          <div><div class="cb-name" id="cbName">Cliente</div><div class="cb-phone" id="cbPhone">—</div></div>
+          <a id="cbCall" href="#">📞 Llamar</a>
+        </div>
+
+        <div class="progress-bar">
+          <div class="prog-step active" onclick="goTo(0)"></div>
+          <div class="prog-step" onclick="goTo(1)"></div>
+          <div class="prog-step" onclick="goTo(2)"></div>
+          <div class="prog-step" onclick="goTo(3)"></div>
+          <div class="prog-step" onclick="goTo(4)"></div>
+          <span class="prog-label" id="progLabel">Apertura</span>
+        </div>
+
+        <!-- PANEL 0: APERTURA -->
+        <div class="panel active">
+          <div class="step-header">
+            <div class="step-num">01</div>
+            <div>
+              <div class="step-tag">Primer contacto</div>
+              <div class="step-title">Apertura</div>
+              <div class="timer-pill">⏱ 0 – 20 segundos</div>
+            </div>
+          </div>
+          <div class="script-box">
+            Hola, mucho gusto. Soy <strong>[tu nombre]</strong> y te contacto de <strong>EnvíoExpress [sucursal]</strong>. Soy tu vecino — mi negocio está en <strong>[calle]</strong> y quería presentarte nuestros servicios.
+          </div>
+          <div class="section-label">Contexto para mencionar si preguntan</div>
+          <div class="tips">
+            <div class="tip"><span class="tip-icon">🤝</span><span>Somos un <strong>Centro Integral de Servicios Logísticos</strong> con alianzas con DHL, FedEx, UPS, Estafeta, Paquetexpress y más. Mismo precio y tiempo de entrega que cada mensajería.</span></div>
+            <div class="tip"><span class="tip-icon">📍</span><span>Contamos con <strong>118 sucursales en 26 estados</strong> de la República Mexicana.</span></div>
+          </div>
+        </div>
+
+        <!-- PANEL 1: VALOR -->
+        <div class="panel">
+          <div class="step-header">
+            <div class="step-num">02</div>
+            <div>
+              <div class="step-tag">Pitch de valor</div>
+              <div class="step-title">Ofrece un beneficio concreto</div>
+              <div class="timer-pill">⏱ 20 – 40 segundos</div>
+            </div>
+          </div>
+          <div class="script-box">
+            Muchos negocios como el tuyo logran <strong>reducir incidencias y simplificar sus envíos</strong> con nosotros — sin lidiar con múltiples mensajerías ni depositar grandes cantidades por adelantado.
+          </div>
+          <div class="section-label">Adapta el beneficio al giro del cliente</div>
+          <div class="tips">
+            <div class="tip"><span class="tip-icon">🛒</span><span><strong>Venta online / e-commerce:</strong> ahorro en recolecciones gratuitas y no perder ventas por incidencias.</span></div>
+            <div class="tip"><span class="tip-icon">🏪</span><span><strong>Tienda física:</strong> respaldo de sucursales cercanas y atención humana sin filas.</span></div>
+            <div class="tip"><span class="tip-icon">🏭</span><span><strong>Empresa o PYME:</strong> multipaquetería, cobertura nacional e internacional e incidencias en ≤72 hrs.</span></div>
+          </div>
+        </div>
+
+        <!-- PANEL 2: ESCUCHA + OBJECIONES -->
+        <div class="panel">
+          <div class="step-header">
+            <div class="step-num">03</div>
+            <div>
+              <div class="step-tag">La pregunta clave</div>
+              <div class="step-title">Escucha y responde</div>
+              <div class="timer-pill">⏱ 60 – 90 segundos</div>
+            </div>
+          </div>
+          <div class="script-box">Cuéntame — <strong>¿qué mensajería utilizas actualmente para realizar tus envíos?</strong></div>
+          <div class="tips" style="margin-bottom:1.25rem;">
+            <div class="tip"><span class="tip-icon">🤫</span><span><strong>Haz la pregunta y guarda silencio.</strong> Quien más escucha tiene más información para negociar. Anota mensajería, volumen y destinos.</span></div>
+          </div>
+          <div class="warning-box">
+            <span style="font-size:18px;flex-shrink:0">⚠️</span>
+            <span>Si responde <strong>"mándame información"</strong> — pregunta antes: <em>"Para mandarte algo útil, ¿cuántos envíos haces al mes aproximadamente?"</em></span>
+          </div>
+          <div class="section-label">¿Qué responde? Toca la objeción para ver tu respuesta</div>
+          <div class="obj-grid">
+            <div class="obj-item" onclick="toggleObj(this)">
+              <div class="obj-q"><span>"Ya trabajo con DHL / Estafeta / FedEx directamente"</span><span class="obj-chevron">▼</span></div>
+              <div class="obj-a"><div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div><p>Perfecto — somos <strong>Distribuidor Autorizado</strong> de esa misma mensajería. Mismo precio y tiempo de entrega, pero además recolección gratuita, atención humana y respaldo de <strong>118 tiendas en 26 estados</strong>. ¿Cuántos envíos haces al mes?</p></div>
+            </div>
+            <div class="obj-item" onclick="toggleObj(this)">
+              <div class="obj-q"><span>"Uso guías prepagadas, son más baratas"</span><span class="obj-chevron">▼</span></div>
+              <div class="obj-a"><div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div><p>Las guías prepagadas exigen depositar montos altos por adelantado — Estafeta pide mínimo 1,000 guías ($100,000). Con nosotros <strong>no hay prepago elevado</strong> y obtienes buenas tarifas desde el primer envío. ¿Cuánto depositas actualmente?</p></div>
+            </div>
+            <div class="obj-item" onclick="toggleObj(this)">
+              <div class="obj-q"><span>"Uso Skydropx / Envia / otra plataforma digital"</span><span class="obj-chevron">▼</span></div>
+              <div class="obj-a"><div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div><p>Las plataformas <strong>no son distribuidores autorizados</strong> — tu cuenta puede suspenderse y tu saldo congelarse sin aviso. Con nosotros tienes certificación oficial, resolución en <strong>≤72 horas</strong> y alguien real que responde por tu envío.</p></div>
+            </div>
+            <div class="obj-item" onclick="toggleObj(this)">
+              <div class="obj-q"><span>"No tengo tiempo / no me interesa por ahora"</span><span class="obj-chevron">▼</span></div>
+              <div class="obj-a"><div class="resp-tag" style="background:var(--amber-soft);color:var(--amber);">TÉCNICA DE CIERRE</div><p>Entiendo. Solo te pido una oportunidad con tu <strong>próximo envío más delicado</strong> — el que más te preocupa que llegue bien. Lo compruebas sin compromiso. ¿Cuándo tienes uno así?</p></div>
+            </div>
+            <div class="obj-item" onclick="toggleObj(this)">
+              <div class="obj-q"><span>"Después de 4 intentos sin respuesta"</span><span class="obj-chevron">▼</span></div>
+              <div class="obj-a"><div class="resp-tag" style="background:var(--brand-soft);color:var(--brand-dark);">ÚLTIMO CONTACTO</div><p><em>"Entiendo que este no es el momento, dejo el proceso hasta aquí para no quitarte tiempo."</em><br><br>Muchos prospectos <strong>"resucitan"</strong> con este mensaje — genera respeto y a veces despierta urgencia.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL 3: BENCHMARK -->
+        <div class="panel">
+          <div class="step-header">
+            <div class="step-num">04</div>
+            <div><div class="step-tag">Referencia rápida</div><div class="step-title">EnvíoExpress vs competencia</div></div>
+          </div>
+          <div class="bench-wrap"><table>
+            <thead><tr><th>Ventaja</th><th style="color:var(--brand);">EnvíoExpress</th><th>Plataformas</th><th>Guías prepag.</th></tr></thead>
+            <tbody>
+              <tr><td>Distribuidor autorizado</td><td class="ee-col ok">✔</td><td class="no">✗ riesgo</td><td class="no">✗</td></tr>
+              <tr><td>Sin prepago alto</td><td class="ee-col ok">✔</td><td class="ok">✔</td><td class="no">✗ mín $100k</td></tr>
+              <tr><td>Recolección gratuita</td><td class="ee-col ok">✔</td><td class="partial">Solo algunas</td><td class="no">✗</td></tr>
+              <tr><td>Tiendas físicas</td><td class="ee-col ok">118 / 26 edos.</td><td class="no">✗</td><td class="no">✗</td></tr>
+              <tr><td>Atención 100% humana</td><td class="ee-col ok">✔</td><td class="no">Bots</td><td class="no">✗</td></tr>
+              <tr><td>Incidencias ≤ 72 hrs</td><td class="ee-col ok">✔</td><td class="no">✗</td><td class="no">✗</td></tr>
+              <tr><td>Cobertura nacional e intl.</td><td class="ee-col ok">✔</td><td class="ok">✔</td><td class="partial">Limitada</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <!-- PANEL 4: RESULTADO -->
+        <div class="panel">
+          <div class="step-header">
+            <div class="step-num">05</div>
+            <div><div class="step-tag">Cierre de la llamada</div><div class="step-title">Documenta el resultado</div></div>
+          </div>
+          <div class="field">
+            <label for="notasLlamada">Datos relevantes obtenidos en la llamada</label>
+            <textarea id="notasLlamada" placeholder="Mensajería actual, volumen mensual, destinos, quién decide…"></textarea>
+          </div>
+          <div class="section-label" style="margin-top:1rem;">Siguiente paso</div>
+          <div class="result-grid">
+            <button class="result-opt" data-result="cita" onclick="seleccionarResultado('cita')">
+              <span class="ric">📅</span><div><h4>Cita concretada</h4><p>Reunión agendada. Aparecerá como tarea del día.</p></div>
+            </button>
+            <button class="result-opt" data-result="seguimiento" onclick="seleccionarResultado('seguimiento')">
+              <span class="ric">🔁</span><div><h4>Seguimiento</h4><p>Volver a contactar en fecha y hora definidas.</p></div>
+            </button>
+            <button class="result-opt" data-result="no_interesado" onclick="seleccionarResultado('no_interesado')">
+              <span class="ric">🚫</span><div><h4>No interesado</h4><p>Se cierra la interacción sin tarea pendiente.</p></div>
+            </button>
+          </div>
+
+          <div class="result-detail" id="detail-cita">
+            <div class="field"><label for="citaDT">Fecha y hora de la cita</label><input type="datetime-local" id="citaDT"><span class="err">Selecciona una fecha y hora válida (futura).</span></div>
+          </div>
+          <div class="result-detail" id="detail-seguimiento">
+            <div class="field"><label for="seguimientoDT">Fecha y hora del próximo contacto</label><input type="datetime-local" id="seguimientoDT"><span class="err">Selecciona una fecha y hora válida (futura).</span></div>
+          </div>
+
+          <button class="btn primary" id="btnGuardarResultado" style="width:100%;display:none;" onclick="guardarResultado()">Guardar y cerrar llamada</button>
+        </div>
+
+        <!-- NAV -->
+        <div class="nav">
+          <button class="btn ghost" id="btnPrev" onclick="navigate(-1)" disabled>← Anterior</button>
+          <span class="nav-step" id="navStep">1 / 5</span>
+          <button class="btn" id="btnNext" onclick="navigate(1)">Siguiente →</button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- DERECHA: TAREAS DEL DÍA (~20%) -->
+  <aside class="col-tareas">
+    <h2>Tareas de hoy</h2>
+    <div class="day" id="hoyFecha"></div>
+    <div id="tareasLista"></div>
+  </aside>
+
+</div>
+
+<!-- MODAL: CLIENTE (nuevo / editar) -->
+<div class="modal-overlay" id="modalCliente">
+  <div class="modal">
+    <h3 id="modalClienteTitulo">Nuevo cliente</h3>
+    <p class="modal-sub">Datos de la cartera compartida del equipo.</p>
+    <div class="field" id="fNombre"><label for="cNombre">Nombre *</label><input type="text" id="cNombre" placeholder="Ej. Juan Pérez"><span class="err">Escribe un nombre.</span></div>
+    <div class="field-row">
+      <div class="field" id="fTel"><label for="cTel">Teléfono *</label><input type="tel" id="cTel" placeholder="5512345678" inputmode="tel"><span class="err">Mínimo 7 dígitos.</span></div>
+      <div class="field"><label for="cCorreo">Correo</label><input type="email" id="cCorreo" placeholder="cliente@correo.com"></div>
+    </div>
+    <div class="field"><label for="cGiro">Giro</label><input type="text" id="cGiro" placeholder="Ej. E-commerce, Tienda física, PYME…"></div>
+    <div class="field"><label for="cComentarios">Comentarios</label><textarea id="cComentarios" placeholder="Notas generales del cliente…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="cerrarModalCliente()">Cancelar</button>
+      <button class="btn primary" onclick="guardarCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: INTERACCIÓN MANUAL -->
+<div class="modal-overlay" id="modalInteraccion">
+  <div class="modal">
+    <h3>Registrar interacción</h3>
+    <p class="modal-sub">Documenta una interacción y define el siguiente paso.</p>
+    <div class="field"><label for="iNotas">Datos relevantes / notas</label><textarea id="iNotas" placeholder="Qué se habló, acuerdos…"></textarea></div>
+    <div class="field"><label for="iPaso">Siguiente paso</label>
+      <select id="iPaso" onchange="toggleInterFecha()">
+        <option value="cita">Cita concretada</option>
+        <option value="seguimiento">Seguimiento</option>
+        <option value="no_interesado">No interesado</option>
+      </select>
+    </div>
+    <div class="field" id="fInterFecha"><label for="iFecha">Fecha y hora</label><input type="datetime-local" id="iFecha"><span class="err">Selecciona una fecha y hora válida (futura).</span></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="cerrarModalInteraccion()">Cancelar</button>
+      <button class="btn primary" onclick="guardarInteraccionManual()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="app.js"></script>
+<script type="module" src="firebase-init.js"></script>
+</body>
+</html>
