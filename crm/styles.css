@@ -1,36 +1,37 @@
 /* =========================================================
    CRM EnvíoExpress — estilos
-   Paleta inspirada en envioexpress.com: rojo de marca + tema claro
+   Paleta y tipografías tomadas directamente de envioexpress.com:
+   rojo #e30613, azul marino #0a2540, fuentes Urbanist + Commissioner.
    ========================================================= */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&family=Urbanist:wght@600;700;800&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   --brand: #e30613;          /* rojo EnvíoExpress */
-  --brand-dark: #b8050f;
-  --brand-soft: #fde8e9;
-  --ink: #1d1f27;            /* texto principal */
-  --muted: #6b7280;
-  --hint: #9aa1ad;
-  --line: #e7e9ee;
-  --bg: #f4f5f8;
+  --brand-dark: #c00510;     /* rojo hover del sitio */
+  --brand-soft: rgba(227,6,19,.12);
+  --ink: #0a2540;            /* azul marino de marca (títulos/texto) */
+  --muted: #556070;
+  --hint: #98a2b3;
+  --line: #e5e7eb;           /* borde claro del sitio */
+  --bg: #f7f9fc;             /* fondo de secciones del sitio */
   --surface: #ffffff;
-  --surface2: #fafbfc;
+  --surface2: #f7f9fc;
   --green: #16a34a;
   --green-soft: #e7f6ed;
   --amber: #d97706;
   --amber-soft: #fdf0dc;
-  --blue: #2563eb;
-  --blue-soft: #e6eefc;
+  --blue: #0b5bd3;           /* azul secundario del sitio */
+  --blue-soft: rgba(11,91,211,.1);
   --radius: 14px;
   --radius-sm: 9px;
-  --shadow: 0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.06);
+  --shadow: 0 1px 2px rgba(10,37,64,.05), 0 8px 24px rgba(10,37,64,.07);
 }
 
 html, body { height: 100%; }
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Commissioner', system-ui, sans-serif;
   background: var(--bg);
   color: var(--ink);
   font-size: 14px;
@@ -57,7 +58,7 @@ body {
   padding: 2rem 1.75rem;
 }
 .login-card .brand {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Urbanist', sans-serif;
   font-weight: 800;
   font-size: 1.5rem;
   letter-spacing: -.02em;
@@ -93,7 +94,7 @@ body {
   gap: .35rem;
 }
 .col-menu .brand {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Urbanist', sans-serif;
   font-weight: 800;
   font-size: 1.15rem;
   letter-spacing: -.02em;
@@ -143,12 +144,12 @@ body {
   margin-bottom: 1.5rem;
 }
 .view-title {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Urbanist', sans-serif;
   font-weight: 700;
   font-size: 1.45rem;
   letter-spacing: -.02em;
 }
-.view-title small { display: block; font-family: 'Inter'; font-weight: 400; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.view-title small { display: block; font-family: 'Commissioner'; font-weight: 400; font-size: 13px; color: var(--muted); margin-top: 2px; }
 
 /* ---- columna derecha: tareas ---- */
 .col-tareas {
@@ -198,7 +199,7 @@ body {
   cursor: pointer;
 }
 .col-tareas h2 {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Urbanist', sans-serif;
   font-weight: 700;
   font-size: 1.05rem;
   margin-bottom: .25rem;
@@ -308,7 +309,7 @@ input[type="datetime-local"] { color-scheme: light; }
   background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 1.4rem; box-shadow: var(--shadow);
 }
-.card h3 { font-family: 'Poppins'; font-weight: 700; font-size: 1.05rem; margin-bottom: 1rem; }
+.card h3 { font-family: 'Urbanist'; font-weight: 700; font-size: 1.05rem; margin-bottom: 1rem; }
 .data-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
 .data-row:last-child { border-bottom: none; }
 .data-row .k { color: var(--muted); width: 95px; flex-shrink: 0; font-weight: 500; }
@@ -351,9 +352,9 @@ input[type="datetime-local"] { color-scheme: light; }
 .panel { display: none; animation: fade .25s ease; }
 .panel.active { display: block; }
 .step-header { display: flex; gap: 1rem; margin-bottom: 1.25rem; align-items: flex-start; }
-.step-num { font-family: 'Poppins'; font-weight: 800; font-size: 2.6rem; line-height: 1; color: var(--brand); opacity: .15; width: 48px; text-align: right; flex-shrink: 0; }
+.step-num { font-family: 'Urbanist'; font-weight: 800; font-size: 2.6rem; line-height: 1; color: var(--brand); opacity: .15; width: 48px; text-align: right; flex-shrink: 0; }
 .step-tag { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
-.step-title { font-family: 'Poppins'; font-weight: 700; font-size: 1.4rem; letter-spacing: -.02em; }
+.step-title { font-family: 'Urbanist'; font-weight: 700; font-size: 1.4rem; letter-spacing: -.02em; }
 .timer-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 99px; margin-top: 8px; background: var(--brand-soft); color: var(--brand-dark); }
 
 .script-box {
@@ -419,7 +420,7 @@ input[type="datetime-local"] { color-scheme: light; }
   background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 480px;
   padding: 1.6rem; box-shadow: 0 20px 60px rgba(0,0,0,.25); max-height: 90vh; overflow-y: auto;
 }
-.modal h3 { font-family: 'Poppins'; font-weight: 700; font-size: 1.3rem; margin-bottom: .25rem; }
+.modal h3 { font-family: 'Urbanist'; font-weight: 700; font-size: 1.3rem; margin-bottom: .25rem; }
 .modal .modal-sub { color: var(--muted); font-size: 13px; margin-bottom: 1.25rem; }
 .modal-actions { display: flex; gap: 10px; margin-top: 1.25rem; }
 .modal-actions .btn { flex: 1; }
