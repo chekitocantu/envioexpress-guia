@@ -521,16 +521,31 @@ const TAREAS_W_MAX = 560;
 function aplicarAnchoTareas(px) {
   const w = Math.max(TAREAS_W_MIN, Math.min(TAREAS_W_MAX, px));
   document.documentElement.style.setProperty('--tareas-w', w + 'px');
+  posicionarHandle();
   return w;
+}
+
+// Coloca el divisor (position:fixed) justo sobre el borde izquierdo del panel.
+function posicionarHandle() {
+  const handle = document.getElementById('resizer');
+  const aside = document.querySelector('.col-tareas');
+  if (!handle || !aside) return;
+  if (window.innerWidth <= 820) { handle.style.display = 'none'; return; }
+  handle.style.display = 'block';
+  handle.style.left = aside.getBoundingClientRect().left + 'px';
 }
 
 function initResizer() {
   const guardado = parseInt(localStorage.getItem(TAREAS_W_KEY), 10);
   if (!isNaN(guardado)) aplicarAnchoTareas(guardado);
+  else posicionarHandle();
 
   const handle = document.getElementById('resizer');
   if (!handle) return;
   let dragging = false;
+
+  // mantener el divisor pegado al borde al cambiar el tamaño de la ventana
+  window.addEventListener('resize', posicionarHandle);
 
   const onMove = e => {
     if (!dragging) return;
