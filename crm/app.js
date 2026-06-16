@@ -512,9 +512,65 @@ function toast(titulo, cuerpo, alerta) {
 }
 
 /* =========================================================
+   Panel de tareas ajustable (ancho guardado por dispositivo)
+   ========================================================= */
+const TAREAS_W_KEY = 'crm_tareas_w';
+const TAREAS_W_MIN = 240;
+const TAREAS_W_MAX = 560;
+
+function aplicarAnchoTareas(px) {
+  const w = Math.max(TAREAS_W_MIN, Math.min(TAREAS_W_MAX, px));
+  document.documentElement.style.setProperty('--tareas-w', w + 'px');
+  return w;
+}
+
+function initResizer() {
+  const guardado = parseInt(localStorage.getItem(TAREAS_W_KEY), 10);
+  if (!isNaN(guardado)) aplicarAnchoTareas(guardado);
+
+  const handle = document.getElementById('resizer');
+  if (!handle) return;
+  let dragging = false;
+
+  const onMove = e => {
+    if (!dragging) return;
+    const x = (e.touches ? e.touches[0].clientX : e.clientX);
+    aplicarAnchoTareas(window.innerWidth - x); // el panel está pegado al borde derecho
+  };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('active');
+    document.body.classList.remove('resizing');
+    const actual = getComputedStyle(document.documentElement).getPropertyValue('--tareas-w').trim();
+    const px = parseInt(actual, 10);
+    if (!isNaN(px)) localStorage.setItem(TAREAS_W_KEY, px);
+  };
+  const onDown = e => {
+    dragging = true;
+    handle.classList.add('active');
+    document.body.classList.add('resizing');
+    e.preventDefault();
+  };
+
+  handle.addEventListener('mousedown', onDown);
+  handle.addEventListener('touchstart', onDown, { passive: false });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchend', onUp);
+  // doble clic restablece el ancho por defecto
+  handle.addEventListener('dblclick', () => {
+    document.documentElement.style.removeProperty('--tareas-w');
+    localStorage.removeItem(TAREAS_W_KEY);
+  });
+}
+
+/* =========================================================
    Init
    ========================================================= */
 function init() {
+  initResizer();
   document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') iniciarSesion(); });
   document.getElementById('modalCliente').addEventListener('click', e => { if (e.target.id === 'modalCliente') cerrarModalCliente(); });
   document.getElementById('modalInteraccion').addEventListener('click', e => { if (e.target.id === 'modalInteraccion') cerrarModalInteraccion(); });
