@@ -73,6 +73,8 @@ function arrancarAuth() {
       document.getElementById('menuUser').textContent = user.email || '';
       iniciarSnapshot();
       irVista('clientes');
+      // la app ya es visible: ahora el panel tiene medidas reales para colocar el divisor
+      requestAnimationFrame(posicionarHandle);
     } else {
       detenerSnapshot();
       document.getElementById('app').classList.remove('active');
