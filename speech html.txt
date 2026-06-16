@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de Llamada — EnvíoExpress</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #171b24;
+    --surface2: #1e2330;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f2f7;
+    --muted: #7a8299;
+    --hint: #4a5168;
+    --accent: #6c5fff;
+    --accent-soft: rgba(108,95,255,0.15);
+    --green: #22c98e;
+    --green-soft: rgba(34,201,142,0.12);
+    --red: #ff5c6a;
+    --red-soft: rgba(255,92,106,0.12);
+    --amber: #f5a623;
+    --amber-soft: rgba(245,166,35,0.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* LAYOUT */
+  .shell {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+  }
+  .logo span { color: var(--accent); }
+  .call-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--green);
+    background: var(--green-soft);
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+  .call-badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(.7); }
+  }
+
+  /* PROGRESS */
+  .progress-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 2rem;
+    align-items: center;
+  }
+  .prog-step {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    cursor: pointer;
+    transition: background .3s;
+    position: relative;
+  }
+  .prog-step.done { background: var(--accent); opacity: .45; }
+  .prog-step.active { background: var(--accent); }
+  .prog-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+
+  /* PANEL */
+  .panel { display: none; animation: fadeIn .25s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* STEP HEADER */
+  .step-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .step-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent);
+    opacity: .18;
+    flex-shrink: 0;
+    width: 52px;
+    text-align: right;
+  }
+  .step-meta { flex: 1; }
+  .step-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    color: var(--text);
+  }
+  .timer-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 99px;
+    margin-top: 8px;
+  }
+
+  /* SCRIPT BOX */
+  .script-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+  .script-box::before {
+    content: '"';
+    position: absolute;
+    top: -8px; left: 16px;
+    font-family: 'Syne', sans-serif;
+    font-size: 2.5rem;
+    color: var(--accent);
+    opacity: .3;
+    line-height: 1;
+  }
+  .script-box strong { color: var(--accent); font-weight: 600; }
+
+  /* TIPS */
+  .tips { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem; }
+  .tip {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .tip-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+  .tip strong { color: var(--text); font-weight: 500; }
+
+  /* WARNING */
+  .warning-box {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--amber-soft);
+    border: 1px solid rgba(245,166,35,.2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13.5px;
+    color: var(--amber);
+    line-height: 1.55;
+    margin-top: 10px;
+  }
+  .warning-box strong { color: var(--amber); font-weight: 600; }
+
+  /* OBJECTIONS */
+  .obj-grid { display: flex; flex-direction: column; gap: 8px; }
+  .obj-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .obj-item:hover { border-color: rgba(255,255,255,.15); }
+  .obj-item.open { border-color: var(--accent); }
+  .obj-q {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    gap: 12px;
+  }
+  .obj-chevron {
+    font-size: 13px;
+    color: var(--hint);
+    transition: transform .2s;
+    flex-shrink: 0;
+  }
+  .obj-item.open .obj-chevron { transform: rotate(180deg); color: var(--accent); }
+  .obj-a {
+    display: none;
+    padding: 14px 18px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  .obj-item.open .obj-a { display: block; }
+  .obj-a strong { color: var(--text); font-weight: 500; }
+  .resp-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    padding: 3px 10px;
+    border-radius: 99px;
+    margin-bottom: 10px;
+  }
+
+  /* BENCH TABLE */
+  .bench-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  thead th:first-child { text-align: left; }
+  tbody td {
+    padding: 11px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td:first-child {
+    text-align: left;
+    color: var(--text);
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .ok { color: var(--green); font-weight: 600; }
+  .no { color: var(--red); }
+  .partial { color: var(--amber); font-size: 12px; }
+  .ee-col { color: var(--green); font-weight: 600; background: var(--green-soft); }
+
+  /* FINAL MESSAGE */
+  .final-card {
+    background: var(--accent-soft);
+    border: 1px solid rgba(108,95,255,.3);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .final-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .final-card strong { color: var(--accent); }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    gap: 12px;
+  }
+  .nav-step { font-size: 12px; color: var(--hint); }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--surface2); border-color: rgba(255,255,255,.15); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { opacity: .88; }
+  .btn:disabled { opacity: .3; cursor: default; }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--hint);
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">envio<span>express</span></div>
+    <div class="call-badge">En llamada</div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar" id="progressBar">
+    <div class="prog-step active" onclick="goTo(0)" title="Apertura"></div>
+    <div class="prog-step" onclick="goTo(1)" title="Valor"></div>
+    <div class="prog-step" onclick="goTo(2)" title="Escucha y objeciones"></div>
+    <div class="prog-step" onclick="goTo(3)" title="Vs competencia"></div>
+    <span class="prog-label" id="progLabel">Apertura</span>
+  </div>
+
+  <!-- PANEL 0: APERTURA -->
+  <div class="panel active" data-step="0">
+    <div class="step-header">
+      <div class="step-num">01</div>
+      <div class="step-meta">
+        <div class="step-tag">Primer contacto</div>
+        <div class="step-title">Apertura</div>
+        <div class="timer-pill" style="background:rgba(108,95,255,.15);color:#a89fff;">⏱ 0 – 20 segundos</div>
+      </div>
+    </div>
+
+    <div class="script-box">
+      Hola, mucho gusto. Soy <strong>[tu nombre]</strong> y te contacto de <strong>EnvíoExpress [sucursal]</strong>. Soy tu vecino — mi negocio está en <strong>[calle]</strong> y quería presentarte nuestros servicios.
+    </div>
+
+    <div class="section-label">Contexto para mencionar si preguntan</div>
+    <div class="tips">
+      <div class="tip">
+        <span class="tip-icon">🤝</span>
+        <span>Somos un <strong>Centro Integral de Servicios Logísticos</strong> con alianzas con DHL, FedEx, UPS, Estafeta, Paquetexpress y más. Mismo precio y tiempo de entrega que cada mensajería directamente.</span>
+      </div>
+      <div class="tip">
+        <span class="tip-icon">📍</span>
+        <span>Contamos con <strong>118 sucursales en 26 estados</strong> de la República Mexicana.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 1: VALOR -->
+  <div class="panel" data-step="1">
+    <div class="step-header">
+      <div class="step-num">02</div>
+      <div class="step-meta">
+        <div class="step-tag">Pitch de valor</div>
+        <div class="step-title">Ofrece un beneficio concreto</div>
+        <div class="timer-pill" style="background:var(--green-soft);color:var(--green);">⏱ 20 – 40 segundos</div>
+      </div>
+    </div>
+
+    <div class="script-box">
+      Muchos negocios como el tuyo logran <strong>reducir incidencias y simplificar sus envíos</strong> con nosotros — sin lidiar con múltiples mensajerías ni depositar grandes cantidades por adelantado.
+    </div>
+
+    <div class="section-label">Adapta el beneficio al giro del cliente</div>
+    <div class="tips">
+      <div class="tip">
+        <span class="tip-icon">🛒</span>
+        <span><strong>Venta online / e-commerce:</strong> habla de ahorro en recolecciones gratuitas y de no perder ventas por incidencias no resueltas.</span>
+      </div>
+      <div class="tip">
+        <span class="tip-icon">🏪</span>
+        <span><strong>Tienda física:</strong> destaca el respaldo de sucursales cercanas y la atención humana sin filas ni esperas.</span>
+      </div>
+      <div class="tip">
+        <span class="tip-icon">🏭</span>
+        <span><strong>Empresa o PYME:</strong> enfoca en multipaquetería, cobertura nacional e internacional y resolución de incidencias en ≤72 hrs.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 2: ESCUCHA -->
+  <!-- PANEL 2: ESCUCHA + OBJECIONES -->
+  <div class="panel" data-step="2">
+    <div class="step-header">
+      <div class="step-num">03</div>
+      <div class="step-meta">
+        <div class="step-tag">La pregunta clave</div>
+        <div class="step-title">Escucha y responde</div>
+        <div class="timer-pill" style="background:rgba(168,159,255,.12);color:#a89fff;">⏱ 60 – 90 segundos</div>
+      </div>
+    </div>
+
+    <div class="script-box">
+      Cuéntame — <strong>¿qué mensajería utilizas actualmente para realizar tus envíos?</strong>
+    </div>
+
+    <div class="tips" style="margin-bottom:1.25rem;">
+      <div class="tip">
+        <span class="tip-icon">🤫</span>
+        <span><strong>Haz la pregunta y guarda silencio.</strong> El que más escucha tiene más información para negociar. Anota la mensajería, volumen y destinos.</span>
+      </div>
+    </div>
+
+    <div class="warning-box" style="margin-bottom:1.5rem;">
+      <span style="font-size:18px;flex-shrink:0">⚠️</span>
+      <span>Si responde <strong>"mándame información"</strong> — pregunta antes de enviar: <em>"Para mandarte algo útil, ¿cuántos envíos haces al mes aproximadamente?"</em></span>
+    </div>
+
+    <div class="section-label" style="margin-bottom:10px;">¿Qué responde? Toca la objeción para ver tu respuesta</div>
+    <div class="obj-grid">
+
+      <div class="obj-item" onclick="toggleObj(this)">
+        <div class="obj-q">
+          <span>"Ya trabajo con DHL / Estafeta / FedEx directamente"</span>
+          <span class="obj-chevron">▼</span>
+        </div>
+        <div class="obj-a">
+          <div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div>
+          <p>Perfecto — nosotros somos <strong>Distribuidor Autorizado</strong> de esa misma mensajería. Tendrás el mismo precio y tiempo de entrega, pero además recolección gratuita, atención humana y el respaldo de <strong>118 tiendas físicas en 26 estados</strong>. ¿Cuántos envíos haces al mes?</p>
+        </div>
+      </div>
+
+      <div class="obj-item" onclick="toggleObj(this)">
+        <div class="obj-q">
+          <span>"Uso guías prepagadas, son más baratas"</span>
+          <span class="obj-chevron">▼</span>
+        </div>
+        <div class="obj-a">
+          <div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div>
+          <p>Con guías prepagadas necesitas depositar montos altos por adelantado para tener buen precio — Estafeta pide mínimo 1,000 guías ($100,000). Con nosotros <strong>no hay prepago elevado</strong> y obtienes tarifas competitivas desde el primer envío. ¿Cuánto depositas actualmente?</p>
+        </div>
+      </div>
+
+      <div class="obj-item" onclick="toggleObj(this)">
+        <div class="obj-q">
+          <span>"Uso Skydropx / Envia / otra plataforma digital"</span>
+          <span class="obj-chevron">▼</span>
+        </div>
+        <div class="obj-a">
+          <div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div>
+          <p>Las plataformas <strong>no son distribuidores autorizados</strong> — tu cuenta puede suspenderse y tu saldo quedar congelado sin previo aviso. Tampoco tienen tiendas físicas ni atención humana. Con nosotros tienes certificación oficial, resolución en <strong>máximo 72 horas</strong> y alguien real que responde por tu envío.</p>
+        </div>
+      </div>
+
+      <div class="obj-item" onclick="toggleObj(this)">
+        <div class="obj-q">
+          <span>"No tengo tiempo / no me interesa por ahora"</span>
+          <span class="obj-chevron">▼</span>
+        </div>
+        <div class="obj-a">
+          <div class="resp-tag" style="background:var(--amber-soft);color:var(--amber);">TÉCNICA DE CIERRE</div>
+          <p>Entiendo perfectamente. Solo te pido una oportunidad con tu <strong>próximo envío más delicado</strong> — el que más te preocupa que llegue bien. Así lo compruebas sin compromiso. ¿Cuándo tienes uno así?</p>
+        </div>
+      </div>
+
+      <div class="obj-item" onclick="toggleObj(this)">
+        <div class="obj-q">
+          <span>"Después de 4 intentos sin respuesta"</span>
+          <span class="obj-chevron">▼</span>
+        </div>
+        <div class="obj-a">
+          <div class="resp-tag" style="background:var(--red-soft);color:var(--red);">ÚLTIMO CONTACTO</div>
+          <p><em>"Entiendo que este no es el momento, por lo que dejo el proceso hasta aquí para no quitarte tiempo."</em><br><br>Muchos prospectos <strong>"resucitan"</strong> con este mensaje — genera respeto y a veces despierta urgencia.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PANEL 3: BENCHMARK -->
+  <div class="panel" data-step="3">
+    <div class="step-header">
+      <div class="step-num">04</div>
+      <div class="step-meta">
+        <div class="step-tag">Referencia rápida</div>
+        <div class="step-title">EnvíoExpress vs competencia</div>
+      </div>
+    </div>
+
+    <div class="bench-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ventaja</th>
+            <th style="color:#6c5fff;">EnvíoExpress</th>
+            <th>Plataformas</th>
+            <th>Guías prepag.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Distribuidor autorizado</td>
+            <td class="ee-col ok">✔</td>
+            <td class="no">✗ riesgo</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr>
+            <td>Sin prepago alto</td>
+            <td class="ee-col ok">✔</td>
+            <td class="ok">✔</td>
+            <td class="no">✗ mín $100k</td>
+          </tr>
+          <tr>
+            <td>Recolección gratuita</td>
+            <td class="ee-col ok">✔</td>
+            <td class="partial">Solo algunas LTs</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr>
+            <td>Tiendas físicas</td>
+            <td class="ee-col ok">118 / 26 estados</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr>
+            <td>Atención 100% humana</td>
+            <td class="ee-col ok">✔</td>
+            <td class="no">Bots</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr>
+            <td>Incidencias ≤ 72 hrs</td>
+            <td class="ee-col ok">✔</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr>
+            <td>Cobertura nacional e intl.</td>
+            <td class="ee-col ok">✔</td>
+            <td class="ok">✔</td>
+            <td class="partial">Limitada</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="final-card" style="margin-top:1.25rem;">
+      <p>El seguimiento no es perseguir — es <strong>seguir aportando valor</strong>.<br>Si el cliente no responde, es porque aún no le has dado una razón nueva para hacerlo.</p>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="btn" id="btnPrev" onclick="navigate(-1)" disabled>← Anterior</button>
+    <span class="nav-step" id="navStep">1 / 4</span>
+    <button class="btn primary" id="btnNext" onclick="navigate(1)">Siguiente →</button>
+  </div>
+
+</div>
+
+<script>
+const labels = ["Apertura","Valor","Escucha y objeciones","Vs competencia"];
+let cur = 0;
+
+function goTo(n) {
+  document.querySelectorAll('.panel')[cur].classList.remove('active');
+  cur = n;
+  document.querySelectorAll('.panel')[cur].classList.add('active');
+  const steps = document.querySelectorAll('.prog-step');
+  steps.forEach((s,i) => {
+    s.classList.remove('active','done');
+    if(i < cur) s.classList.add('done');
+    if(i === cur) s.classList.add('active');
+  });
+  document.getElementById('progLabel').textContent = labels[cur];
+  document.getElementById('navStep').textContent = (cur+1) + ' / ' + labels.length;
+  document.getElementById('btnPrev').disabled = cur === 0;
+  document.getElementById('btnNext').textContent = cur === labels.length-1 ? '↺ Reiniciar' : 'Siguiente →';
+}
+
+function navigate(dir) {
+  const next = cur + dir;
+  if(next < 0 || next > labels.length-1) { if(dir > 0) goTo(0); return; }
+  goTo(next);
+}
+
+function toggleObj(el) {
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.obj-item').forEach(o => o.classList.remove('open'));
+  if(!isOpen) el.classList.add('open');
+}
+</script>
+</body>
+</html>

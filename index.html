@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d0f14">
+<title>EnvíoExpress — Guía de Llamada</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #171b24;
+    --surface2: #1e2330;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f2f7;
+    --muted: #7a8299;
+    --hint: #4a5168;
+    --accent: #6c5fff;
+    --accent-soft: rgba(108,95,255,0.15);
+    --green: #22c98e;
+    --green-soft: rgba(34,201,142,0.12);
+    --red: #ff5c6a;
+    --red-soft: rgba(255,92,106,0.12);
+    --amber: #f5a623;
+    --amber-soft: rgba(245,166,35,0.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* LAYOUT */
+  .shell {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    cursor: pointer;
+  }
+  .logo span { color: var(--accent); }
+  .call-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--green);
+    background: var(--green-soft);
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+  .call-badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(.7); }
+  }
+
+  /* VIEWS */
+  .view { display: none; animation: fadeIn .25s ease; }
+  .view.active { display: block; }
+
+  /* HOME CARDS */
+  .home-intro { margin-bottom: 2rem; }
+  .home-intro h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    margin-bottom: .5rem;
+  }
+  .home-intro p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .home-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 560px) { .home-grid { grid-template-columns: 1fr; } }
+  .home-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.6rem 1.4rem;
+    cursor: pointer;
+    transition: border-color .2s, transform .15s;
+    position: relative;
+    text-align: left;
+    width: 100%;
+    color: inherit;
+    font-family: inherit;
+  }
+  .home-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .home-card .ic { font-size: 28px; margin-bottom: 14px; display: block; }
+  .home-card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -.01em;
+  }
+  .home-card p { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .home-card .count {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7px;
+  }
+  .home-card .count.hidden { display: none; }
+
+  /* PROGRESS */
+  .progress-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 2rem;
+    align-items: center;
+  }
+  .prog-step {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    cursor: pointer;
+    transition: background .3s;
+    position: relative;
+  }
+  .prog-step.done { background: var(--accent); opacity: .45; }
+  .prog-step.active { background: var(--accent); }
+  .prog-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+
+  /* ACTIVE CLIENT BAR */
+  .client-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 1.5rem;
+  }
+  .client-bar .cb-name { font-size: 14px; font-weight: 600; }
+  .client-bar .cb-phone { font-size: 12px; color: var(--muted); }
+  .client-bar a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 500; }
+
+  /* PANEL */
+  .panel { display: none; animation: fadeIn .25s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* STEP HEADER */
+  .step-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .step-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent);
+    opacity: .18;
+    flex-shrink: 0;
+    width: 52px;
+    text-align: right;
+  }
+  .step-meta { flex: 1; }
+  .step-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    color: var(--text);
+  }
+  .timer-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 99px;
+    margin-top: 8px;
+  }
+
+  /* SCRIPT BOX */
+  .script-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+  .script-box::before {
+    content: '"';
+    position: absolute;
+    top: -8px; left: 16px;
+    font-family: 'Syne', sans-serif;
+    font-size: 2.5rem;
+    color: var(--accent);
+    opacity: .3;
+    line-height: 1;
+  }
+  .script-box strong { color: var(--accent); font-weight: 600; }
+
+  /* TIPS */
+  .tips { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem; }
+  .tip {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .tip-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+  .tip strong { color: var(--text); font-weight: 500; }
+
+  /* WARNING */
+  .warning-box {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--amber-soft);
+    border: 1px solid rgba(245,166,35,.2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13.5px;
+    color: var(--amber);
+    line-height: 1.55;
+    margin-top: 10px;
+  }
+  .warning-box strong { color: var(--amber); font-weight: 600; }
+
+  /* OBJECTIONS */
+  .obj-grid { display: flex; flex-direction: column; gap: 8px; }
+  .obj-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .obj-item:hover { border-color: rgba(255,255,255,.15); }
+  .obj-item.open { border-color: var(--accent); }
+  .obj-q {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    gap: 12px;
+  }
+  .obj-chevron {
+    font-size: 13px;
+    color: var(--hint);
+    transition: transform .2s;
+    flex-shrink: 0;
+  }
+  .obj-item.open .obj-chevron { transform: rotate(180deg); color: var(--accent); }
+  .obj-a {
+    display: none;
+    padding: 14px 18px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  .obj-item.open .obj-a { display: block; }
+  .obj-a strong { color: var(--text); font-weight: 500; }
+  .resp-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    padding: 3px 10px;
+    border-radius: 99px;
+    margin-bottom: 10px;
+  }
+
+  /* BENCH TABLE */
+  .bench-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  thead th:first-child { text-align: left; }
+  tbody td {
+    padding: 11px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td:first-child {
+    text-align: left;
+    color: var(--text);
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .ok { color: var(--green); font-weight: 600; }
+  .no { color: var(--red); }
+  .partial { color: var(--amber); font-size: 12px; }
+  .ee-col { color: var(--green); font-weight: 600; background: var(--green-soft); }
+
+  /* FINAL MESSAGE */
+  .final-card {
+    background: var(--accent-soft);
+    border: 1px solid rgba(108,95,255,.3);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .final-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .final-card strong { color: var(--accent); }
+
+  /* RESULT STEP */
+  .result-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem; }
+  .result-opt {
+    text-align: left;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    cursor: pointer;
+    color: inherit;
+    font-family: inherit;
+    transition: border-color .2s;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .result-opt:hover { border-color: rgba(255,255,255,.18); }
+  .result-opt.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .result-opt .ric { font-size: 22px; flex-shrink: 0; }
+  .result-opt h4 { font-size: 14.5px; font-weight: 600; margin-bottom: 3px; }
+  .result-opt p { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+  .result-detail {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .result-detail.active { display: block; animation: fadeIn .2s ease; }
+
+  /* FORM ELEMENTS */
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: .02em;
+  }
+  .field input, .field textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field .err { color: var(--red); font-size: 12px; margin-top: 5px; display: none; }
+  .field.invalid .err { display: block; }
+  .field.invalid input { border-color: var(--red); }
+  input[type="datetime-local"] { color-scheme: dark; }
+
+  /* AGENDA */
+  .view-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin-bottom: 1.25rem;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--hint);
+    margin-bottom: 10px;
+  }
+  .reminders { display: flex; flex-direction: column; gap: 8px; margin-bottom: 2rem; }
+  .reminder {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .reminder.soon { border-color: rgba(245,166,35,.35); background: var(--amber-soft); }
+  .reminder .rm-ic { font-size: 18px; }
+  .reminder .rm-main { flex: 1; }
+  .reminder .rm-name { font-size: 14px; font-weight: 600; }
+  .reminder .rm-when { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .reminder .rm-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--amber);
+    white-space: nowrap;
+  }
+
+  .client-list { display: flex; flex-direction: column; gap: 8px; }
+  .client-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .client-row .cr-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .client-row .cr-name { font-size: 15px; font-weight: 600; }
+  .client-row .cr-phone { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .client-row .cr-meta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 11px;
+    border-radius: 99px;
+    white-space: nowrap;
+    letter-spacing: .02em;
+  }
+  .badge.contactado { background: var(--accent-soft); color: #a89fff; }
+  .badge.por_contactar { background: var(--amber-soft); color: var(--amber); }
+  .badge.no_interesado { background: var(--red-soft); color: var(--red); }
+  .badge.cita_agendada { background: var(--green-soft); color: var(--green); }
+  .cr-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .cr-actions .btn { font-size: 12px; padding: 7px 14px; }
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    padding: 2.5rem 1rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    gap: 12px;
+  }
+  .nav-step { font-size: 12px; color: var(--hint); }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--surface2); border-color: rgba(255,255,255,.15); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { opacity: .88; }
+  .btn.danger { color: var(--red); }
+  .btn.danger:hover { background: var(--red-soft); border-color: rgba(255,92,106,.3); }
+  .btn:disabled { opacity: .3; cursor: default; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5,6,10,.7);
+    backdrop-filter: blur(3px);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .modal-overlay.active { display: flex; animation: fadeIn .15s ease; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    width: 100%;
+    max-width: 420px;
+    animation: fadeIn .2s ease;
+  }
+  .modal h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: .35rem;
+  }
+  .modal .modal-sub { color: var(--muted); font-size: 13px; margin-bottom: 1.25rem; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 1.25rem; }
+  .modal-actions .btn { flex: 1; justify-content: center; }
+
+  /* TOAST / IN-APP ALERT */
+  .toast-wrap {
+    position: fixed;
+    top: 16px; right: 16px;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 340px;
+  }
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 13px 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    animation: slideIn .25s ease;
+  }
+  .toast.alert { border-color: var(--amber); border-left-color: var(--amber); }
+  .toast .t-title { font-size: 13.5px; font-weight: 600; margin-bottom: 3px; }
+  .toast .t-body { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+
+  /* NOTIF BANNER */
+  .notif-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--amber-soft);
+    border: 1px solid rgba(245,166,35,.25);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    margin-bottom: 1.5rem;
+    font-size: 13px;
+    color: var(--amber);
+  }
+  .notif-banner.show { display: flex; }
+  .notif-banner button {
+    margin-left: auto;
+    background: var(--amber);
+    color: #1a1300;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .notif-banner .close-x {
+    background: transparent;
+    color: var(--amber);
+    padding: 4px 8px;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo" onclick="irInicio()">envio<span>express</span></div>
+    <div class="call-badge" id="callBadge" style="display:none;">En llamada</div>
+  </div>
+
+  <!-- NOTIF PERMISSION BANNER -->
+  <div class="notif-banner" id="notifBanner">
+    <span>🔔</span>
+    <span>Activa las notificaciones para recibir avisos de tus seguimientos y citas.</span>
+    <button onclick="pedirPermisoNotif()">Activar</button>
+    <button class="close-x" onclick="cerrarBanner()">✕</button>
+  </div>
+
+  <!-- ===================== VIEW: INICIO ===================== -->
+  <div class="view active" id="vista-inicio">
+    <div class="home-intro">
+      <h1>Centro de llamadas</h1>
+      <p>Registra a tus clientes, sigue la guía y agenda tus seguimientos sin perder ninguno.</p>
+    </div>
+    <div class="home-grid">
+      <button class="home-card" onclick="abrirModalNuevo()">
+        <span class="ic">📞</span>
+        <h3>Nuevo cliente</h3>
+        <p>Registra nombre y teléfono, y empieza la guía de llamada.</p>
+      </button>
+      <button class="home-card" onclick="irAgenda()">
+        <span class="ic">📋</span>
+        <span class="count hidden" id="homeCount">0</span>
+        <h3>Clientes y agenda</h3>
+        <p>Consulta tus clientes, estados y próximos seguimientos.</p>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW: GUÍA ===================== -->
+  <div class="view" id="vista-guia">
+
+    <div class="client-bar" id="clientBar">
+      <div>
+        <div class="cb-name" id="cbName">Cliente</div>
+        <div class="cb-phone" id="cbPhone">—</div>
+      </div>
+      <a id="cbCall" href="#">Llamar</a>
+    </div>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="prog-step active" onclick="goTo(0)" title="Apertura"></div>
+      <div class="prog-step" onclick="goTo(1)" title="Valor"></div>
+      <div class="prog-step" onclick="goTo(2)" title="Escucha y objeciones"></div>
+      <div class="prog-step" onclick="goTo(3)" title="Vs competencia"></div>
+      <div class="prog-step" onclick="goTo(4)" title="Resultado"></div>
+      <span class="prog-label" id="progLabel">Apertura</span>
+    </div>
+
+    <!-- PANEL 0: APERTURA -->
+    <div class="panel active" data-step="0">
+      <div class="step-header">
+        <div class="step-num">01</div>
+        <div class="step-meta">
+          <div class="step-tag">Primer contacto</div>
+          <div class="step-title">Apertura</div>
+          <div class="timer-pill" style="background:rgba(108,95,255,.15);color:#a89fff;">⏱ 0 – 20 segundos</div>
+        </div>
+      </div>
+
+      <div class="script-box">
+        Hola, mucho gusto. Soy <strong>[tu nombre]</strong> y te contacto de <strong>EnvíoExpress [sucursal]</strong>. Soy tu vecino — mi negocio está en <strong>[calle]</strong> y quería presentarte nuestros servicios.
+      </div>
+
+      <div class="section-label">Contexto para mencionar si preguntan</div>
+      <div class="tips">
+        <div class="tip">
+          <span class="tip-icon">🤝</span>
+          <span>Somos un <strong>Centro Integral de Servicios Logísticos</strong> con alianzas con DHL, FedEx, UPS, Estafeta, Paquetexpress y más. Mismo precio y tiempo de entrega que cada mensajería directamente.</span>
+        </div>
+        <div class="tip">
+          <span class="tip-icon">📍</span>
+          <span>Contamos con <strong>118 sucursales en 26 estados</strong> de la República Mexicana.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 1: VALOR -->
+    <div class="panel" data-step="1">
+      <div class="step-header">
+        <div class="step-num">02</div>
+        <div class="step-meta">
+          <div class="step-tag">Pitch de valor</div>
+          <div class="step-title">Ofrece un beneficio concreto</div>
+          <div class="timer-pill" style="background:var(--green-soft);color:var(--green);">⏱ 20 – 40 segundos</div>
+        </div>
+      </div>
+
+      <div class="script-box">
+        Muchos negocios como el tuyo logran <strong>reducir incidencias y simplificar sus envíos</strong> con nosotros — sin lidiar con múltiples mensajerías ni depositar grandes cantidades por adelantado.
+      </div>
+
+      <div class="section-label">Adapta el beneficio al giro del cliente</div>
+      <div class="tips">
+        <div class="tip">
+          <span class="tip-icon">🛒</span>
+          <span><strong>Venta online / e-commerce:</strong> habla de ahorro en recolecciones gratuitas y de no perder ventas por incidencias no resueltas.</span>
+        </div>
+        <div class="tip">
+          <span class="tip-icon">🏪</span>
+          <span><strong>Tienda física:</strong> destaca el respaldo de sucursales cercanas y la atención humana sin filas ni esperas.</span>
+        </div>
+        <div class="tip">
+          <span class="tip-icon">🏭</span>
+          <span><strong>Empresa o PYME:</strong> enfoca en multipaquetería, cobertura nacional e internacional y resolución de incidencias en ≤72 hrs.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 2: ESCUCHA + OBJECIONES -->
+    <div class="panel" data-step="2">
+      <div class="step-header">
+        <div class="step-num">03</div>
+        <div class="step-meta">
+          <div class="step-tag">La pregunta clave</div>
+          <div class="step-title">Escucha y responde</div>
+          <div class="timer-pill" style="background:rgba(168,159,255,.12);color:#a89fff;">⏱ 60 – 90 segundos</div>
+        </div>
+      </div>
+
+      <div class="script-box">
+        Cuéntame — <strong>¿qué mensajería utilizas actualmente para realizar tus envíos?</strong>
+      </div>
+
+      <div class="tips" style="margin-bottom:1.25rem;">
+        <div class="tip">
+          <span class="tip-icon">🤫</span>
+          <span><strong>Haz la pregunta y guarda silencio.</strong> El que más escucha tiene más información para negociar. Anota la mensajería, volumen y destinos.</span>
+        </div>
+      </div>
+
+      <div class="warning-box" style="margin-bottom:1.5rem;">
+        <span style="font-size:18px;flex-shrink:0">⚠️</span>
+        <span>Si responde <strong>"mándame información"</strong> — pregunta antes de enviar: <em>"Para mandarte algo útil, ¿cuántos envíos haces al mes aproximadamente?"</em></span>
+      </div>
+
+      <div class="section-label" style="margin-bottom:10px;">¿Qué responde? Toca la objeción para ver tu respuesta</div>
+      <div class="obj-grid">
+
+        <div class="obj-item" onclick="toggleObj(this)">
+          <div class="obj-q">
+            <span>"Ya trabajo con DHL / Estafeta / FedEx directamente"</span>
+            <span class="obj-chevron">▼</span>
+          </div>
+          <div class="obj-a">
+            <div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div>
+            <p>Perfecto — nosotros somos <strong>Distribuidor Autorizado</strong> de esa misma mensajería. Tendrás el mismo precio y tiempo de entrega, pero además recolección gratuita, atención humana y el respaldo de <strong>118 tiendas físicas en 26 estados</strong>. ¿Cuántos envíos haces al mes?</p>
+          </div>
+        </div>
+
+        <div class="obj-item" onclick="toggleObj(this)">
+          <div class="obj-q">
+            <span>"Uso guías prepagadas, son más baratas"</span>
+            <span class="obj-chevron">▼</span>
+          </div>
+          <div class="obj-a">
+            <div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div>
+            <p>Con guías prepagadas necesitas depositar montos altos por adelantado para tener buen precio — Estafeta pide mínimo 1,000 guías ($100,000). Con nosotros <strong>no hay prepago elevado</strong> y obtienes tarifas competitivas desde el primer envío. ¿Cuánto depositas actualmente?</p>
+          </div>
+        </div>
+
+        <div class="obj-item" onclick="toggleObj(this)">
+          <div class="obj-q">
+            <span>"Uso Skydropx / Envia / otra plataforma digital"</span>
+            <span class="obj-chevron">▼</span>
+          </div>
+          <div class="obj-a">
+            <div class="resp-tag" style="background:var(--green-soft);color:var(--green);">TU RESPUESTA</div>
+            <p>Las plataformas <strong>no son distribuidores autorizados</strong> — tu cuenta puede suspenderse y tu saldo quedar congelado sin previo aviso. Tampoco tienen tiendas físicas ni atención humana. Con nosotros tienes certificación oficial, resolución en <strong>máximo 72 horas</strong> y alguien real que responde por tu envío.</p>
+          </div>
+        </div>
+
+        <div class="obj-item" onclick="toggleObj(this)">
+          <div class="obj-q">
+            <span>"No tengo tiempo / no me interesa por ahora"</span>
+            <span class="obj-chevron">▼</span>
+          </div>
+          <div class="obj-a">
+            <div class="resp-tag" style="background:var(--amber-soft);color:var(--amber);">TÉCNICA DE CIERRE</div>
+            <p>Entiendo perfectamente. Solo te pido una oportunidad con tu <strong>próximo envío más delicado</strong> — el que más te preocupa que llegue bien. Así lo compruebas sin compromiso. ¿Cuándo tienes uno así?</p>
+          </div>
+        </div>
+
+        <div class="obj-item" onclick="toggleObj(this)">
+          <div class="obj-q">
+            <span>"Después de 4 intentos sin respuesta"</span>
+            <span class="obj-chevron">▼</span>
+          </div>
+          <div class="obj-a">
+            <div class="resp-tag" style="background:var(--red-soft);color:var(--red);">ÚLTIMO CONTACTO</div>
+            <p><em>"Entiendo que este no es el momento, por lo que dejo el proceso hasta aquí para no quitarte tiempo."</em><br><br>Muchos prospectos <strong>"resucitan"</strong> con este mensaje — genera respeto y a veces despierta urgencia.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PANEL 3: BENCHMARK -->
+    <div class="panel" data-step="3">
+      <div class="step-header">
+        <div class="step-num">04</div>
+        <div class="step-meta">
+          <div class="step-tag">Referencia rápida</div>
+          <div class="step-title">EnvíoExpress vs competencia</div>
+        </div>
+      </div>
+
+      <div class="bench-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ventaja</th>
+              <th style="color:#6c5fff;">EnvíoExpress</th>
+              <th>Plataformas</th>
+              <th>Guías prepag.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Distribuidor autorizado</td>
+              <td class="ee-col ok">✔</td>
+              <td class="no">✗ riesgo</td>
+              <td class="no">✗</td>
+            </tr>
+            <tr>
+              <td>Sin prepago alto</td>
+              <td class="ee-col ok">✔</td>
+              <td class="ok">✔</td>
+              <td class="no">✗ mín $100k</td>
+            </tr>
+            <tr>
+              <td>Recolección gratuita</td>
+              <td class="ee-col ok">✔</td>
+              <td class="partial">Solo algunas LTs</td>
+              <td class="no">✗</td>
+            </tr>
+            <tr>
+              <td>Tiendas físicas</td>
+              <td class="ee-col ok">118 / 26 estados</td>
+              <td class="no">✗</td>
+              <td class="no">✗</td>
+            </tr>
+            <tr>
+              <td>Atención 100% humana</td>
+              <td class="ee-col ok">✔</td>
+              <td class="no">Bots</td>
+              <td class="no">✗</td>
+            </tr>
+            <tr>
+              <td>Incidencias ≤ 72 hrs</td>
+              <td class="ee-col ok">✔</td>
+              <td class="no">✗</td>
+              <td class="no">✗</td>
+            </tr>
+            <tr>
+              <td>Cobertura nacional e intl.</td>
+              <td class="ee-col ok">✔</td>
+              <td class="ok">✔</td>
+              <td class="partial">Limitada</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="final-card" style="margin-top:1.25rem;">
+        <p>El seguimiento no es perseguir — es <strong>seguir aportando valor</strong>.<br>Si el cliente no responde, es porque aún no le has dado una razón nueva para hacerlo.</p>
+      </div>
+    </div>
+
+    <!-- PANEL 4: RESULTADO -->
+    <div class="panel" data-step="4">
+      <div class="step-header">
+        <div class="step-num">05</div>
+        <div class="step-meta">
+          <div class="step-tag">Cierre de la llamada</div>
+          <div class="step-title">Resultado de la llamada</div>
+        </div>
+      </div>
+
+      <div class="section-label">¿Cómo terminó la llamada? Elige una opción</div>
+      <div class="result-grid">
+        <button class="result-opt" data-result="por_contactar" onclick="seleccionarResultado('por_contactar')">
+          <span class="ric">🔁</span>
+          <div>
+            <h4>Quiere que le contacte después</h4>
+            <p>Agenda un seguimiento. Te avisaré 5 minutos antes.</p>
+          </div>
+        </button>
+        <button class="result-opt" data-result="cita_agendada" onclick="seleccionarResultado('cita_agendada')">
+          <span class="ric">📅</span>
+          <div>
+            <h4>Cita presencial agendada</h4>
+            <p>Reunión cara a cara. Te avisaré 1 día antes.</p>
+          </div>
+        </button>
+        <button class="result-opt" data-result="no_interesado" onclick="seleccionarResultado('no_interesado')">
+          <span class="ric">🚫</span>
+          <div>
+            <h4>No está interesado</h4>
+            <p>Se marca el cliente como no interesado.</p>
+          </div>
+        </button>
+      </div>
+
+      <!-- detalle: por contactar -->
+      <div class="result-detail" id="detail-por_contactar">
+        <div class="field">
+          <label for="callbackDT">Fecha y hora del próximo contacto</label>
+          <input type="datetime-local" id="callbackDT">
+          <span class="err">Selecciona una fecha y hora válida (futura).</span>
+        </div>
+        <div class="field">
+          <label for="notasCallback">Notas (opcional)</label>
+          <textarea id="notasCallback" placeholder="Mensajería actual, volumen, qué quedó pendiente…"></textarea>
+        </div>
+      </div>
+
+      <!-- detalle: cita -->
+      <div class="result-detail" id="detail-cita_agendada">
+        <div class="field">
+          <label for="citaDT">Fecha y hora de la cita</label>
+          <input type="datetime-local" id="citaDT">
+          <span class="err">Selecciona una fecha y hora válida (futura).</span>
+        </div>
+        <div class="field">
+          <label for="citaDir">Dirección / lugar</label>
+          <input type="text" id="citaDir" placeholder="Ej. Av. Reforma 123, local 4">
+        </div>
+        <div class="field">
+          <label for="notasCita">Notas (opcional)</label>
+          <textarea id="notasCita" placeholder="Qué llevar, con quién es la reunión…"></textarea>
+        </div>
+      </div>
+
+      <!-- detalle: no interesado -->
+      <div class="result-detail" id="detail-no_interesado">
+        <div class="field">
+          <label for="notasNo">Motivo (opcional)</label>
+          <textarea id="notasNo" placeholder="¿Por qué no está interesado?"></textarea>
+        </div>
+      </div>
+
+      <button class="btn primary" id="btnGuardarResultado" style="width:100%;justify-content:center;display:none;" onclick="guardarResultado()">Guardar y cerrar llamada</button>
+    </div>
+
+    <!-- NAV -->
+    <div class="nav">
+      <button class="btn" id="btnPrev" onclick="navigate(-1)" disabled>← Anterior</button>
+      <span class="nav-step" id="navStep">1 / 5</span>
+      <button class="btn primary" id="btnNext" onclick="navigate(1)">Siguiente →</button>
+    </div>
+
+  </div>
+
+  <!-- ===================== VIEW: AGENDA ===================== -->
+  <div class="view" id="vista-agenda">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:1.25rem;">
+      <div class="view-title" style="margin:0;">Clientes y agenda</div>
+      <button class="btn primary" onclick="abrirModalNuevo()">+ Nuevo</button>
+    </div>
+
+    <div id="remindersSection" style="display:none;">
+      <div class="section-label">Próximos recordatorios</div>
+      <div class="reminders" id="remindersList"></div>
+    </div>
+
+    <div class="section-label">Todos los clientes</div>
+    <div class="client-list" id="clientList"></div>
+  </div>
+
+</div>
+
+<!-- MODAL: NUEVO CLIENTE -->
+<div class="modal-overlay" id="modalNuevo">
+  <div class="modal">
+    <h3>Nuevo cliente</h3>
+    <p class="modal-sub">Se guardará como <strong style="color:#a89fff;">Contactado</strong> y abriremos la guía de llamada.</p>
+    <div class="field" id="fieldNombre">
+      <label for="inNombre">Nombre del cliente</label>
+      <input type="text" id="inNombre" placeholder="Ej. Juan Pérez" autocomplete="off">
+      <span class="err">Escribe un nombre.</span>
+    </div>
+    <div class="field" id="fieldTel">
+      <label for="inTel">Teléfono</label>
+      <input type="tel" id="inTel" placeholder="Ej. 5512345678" inputmode="tel" autocomplete="off">
+      <span class="err">Escribe un teléfono válido (al menos 7 dígitos).</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="cerrarModalNuevo()">Cancelar</button>
+      <button class="btn primary" onclick="crearCliente()">Empezar llamada →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
