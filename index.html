@@ -49,6 +49,46 @@
     padding: 2rem 1.5rem 4rem;
   }
 
+  /* PANEL DE TAREAS (columna derecha fija) */
+  .tasks-panel {
+    position: fixed;
+    top: 0; right: 0;
+    width: 320px;
+    height: 100vh;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    overflow-y: auto;
+    display: none;
+    z-index: 20;
+  }
+  body.has-tasks .tasks-panel { display: block; }
+  @media (min-width: 1080px) { body.has-tasks { padding-right: 320px; } }
+  @media (max-width: 1079px) { .tasks-panel { display: none !important; } body.has-tasks { padding-right: 0; } }
+  .tasks-panel h2 { font-family: 'Urbanist', sans-serif; font-weight: 800; font-size: 1.15rem; margin-bottom: .25rem; }
+  .tp-day { font-size: 12px; color: var(--muted); margin-bottom: 1.25rem; text-transform: capitalize; }
+  .tp-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--hint); margin: 1.1rem 0 .6rem; }
+  .tp-task {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 11px 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: box-shadow .15s, transform .12s;
+  }
+  .tp-task:hover { box-shadow: 0 6px 18px rgba(10,37,64,.08); transform: translateY(-1px); }
+  .tp-task.cita { border-left-color: var(--green); }
+  .tp-task.seguimiento { border-left-color: var(--amber); }
+  .tp-task.vencida { border-left-color: var(--accent); background: var(--accent-soft); }
+  .tp-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .tp-name { font-weight: 600; font-size: 13.5px; }
+  .tp-time { font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .tp-kind { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .tp-kind b { font-weight: 600; color: var(--text); }
+  .tp-empty { text-align: center; color: var(--hint); font-size: 13px; border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 1.75rem 1rem; }
+
   /* HEADER */
   .header {
     display: flex;
@@ -690,6 +730,7 @@
 </style>
 </head>
 <body>
+<div class="layout" id="layout">
 <div class="shell">
 
   <!-- HEADER -->
@@ -1094,7 +1135,16 @@
     <div class="client-list" id="clientList"></div>
   </div>
 
-</div>
+</div><!-- /shell -->
+
+  <!-- PANEL DE TAREAS (columna derecha, visible solo con sesión iniciada) -->
+  <aside class="tasks-panel" id="tasksPanel">
+    <h2>Tareas de hoy</h2>
+    <div class="tp-day" id="tpDay"></div>
+    <div id="tpList"></div>
+  </aside>
+
+</div><!-- /layout -->
 
 <!-- MODAL: NUEVO CLIENTE -->
 <div class="modal-overlay" id="modalNuevo">

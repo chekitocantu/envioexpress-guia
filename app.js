@@ -48,6 +48,7 @@ function iniciarSnapshot() {
     snap => {
       clientes = snap.docs.map(d => d.data());
       actualizarHomeCount();
+      renderPanelTareas();
       if (document.getElementById('vista-agenda').classList.contains('active')) renderAgenda();
       revisarRecordatorios();
     },
@@ -77,15 +78,18 @@ function arrancarAuth() {
 }
 
 function mostrarLogin() {
+  document.body.classList.remove('has-tasks');
   document.getElementById('btnLogout').style.display = 'none';
   document.getElementById('callBadge').style.display = 'none';
   mostrarVista('vista-login');
 }
 
 function mostrarLogueado() {
+  document.body.classList.add('has-tasks');
   document.getElementById('btnLogout').style.display = 'inline-flex';
   document.getElementById('loginPass').value = '';
   actualizarHomeCount();
+  renderPanelTareas();
   mostrarVista('vista-inicio');
 }
 
@@ -356,6 +360,54 @@ function recordatoriosProximos() {
     .sort((a, b) => a.when - b.when);
 }
 
+/* =========================================================
+   Panel de tareas (columna derecha, siempre visible)
+   Muestra los recordatorios vencidos y los de hoy.
+   ========================================================= */
+function recordatoriosTodos() {
+  const lista = [];
+  clientes.forEach(c => {
+    if (c.estado === 'por_contactar' && c.callbackEn)
+      lista.push({ id: c.id, nombre: c.nombre, tipo: 'callback', when: new Date(c.callbackEn) });
+    if (c.estado === 'cita_agendada' && c.citaEn)
+      lista.push({ id: c.id, nombre: c.nombre, tipo: 'cita', when: new Date(c.citaEn), dir: c.citaDireccion });
+  });
+  return lista.sort((a, b) => a.when - b.when);
+}
+
+function mismoDia(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function renderPanelTareas() {
+  const day = document.getElementById('tpDay');
+  const list = document.getElementById('tpList');
+  if (!list) return;
+  const ahora = new Date();
+  day.textContent = ahora.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  const all = recordatoriosTodos();
+  const venc = all.filter(r => r.when < ahora && !mismoDia(r.when, ahora));
+  const hoy = all.filter(r => mismoDia(r.when, ahora));
+  if (!venc.length && !hoy.length) {
+    list.innerHTML = '<div class="tp-empty">Nada pendiente para hoy 🎉</div>';
+    return;
+  }
+  let html = '';
+  if (venc.length) html += '<div class="tp-label">Vencidas</div>' + venc.map(r => tpItem(r, true)).join('');
+  if (hoy.length) html += '<div class="tp-label">Hoy</div>' + hoy.map(r => tpItem(r, false)).join('');
+  list.innerHTML = html;
+}
+
+function tpItem(r, venc) {
+  const ic = r.tipo === 'cita' ? '📅' : '🔁';
+  const txt = r.tipo === 'cita' ? 'Cita' : 'Seguimiento';
+  const extra = venc ? ' · ' + r.when.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '';
+  return `<div class="tp-task ${venc ? 'vencida' : r.tipo}" onclick="irGuia('${r.id}')">
+    <div class="tp-top"><span class="tp-name">${escapeHtml(r.nombre)}</span><span class="tp-time">${fmtHora(r.when)}</span></div>
+    <div class="tp-kind">${ic} <b>${txt}</b>${extra}</div>
+  </div>`;
+}
+
 function actualizarHomeCount() {
   const n = recordatoriosProximos().length;
   const el = document.getElementById('homeCount');
@@ -431,6 +483,7 @@ function eliminarCliente(id) {
   }
   renderAgenda();
   actualizarHomeCount();
+  renderPanelTareas();
 }
 
 /* =========================================================
@@ -509,6 +562,7 @@ function revisarRecordatorios() {
 
   if (cambios) saveNotified(notified);
   actualizarHomeCount();
+  renderPanelTareas();
   if (document.getElementById('vista-agenda').classList.contains('active')) renderAgenda();
 }
 
