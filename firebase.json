@@ -1,5 +1,9 @@
 {
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": "crm",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
   }
 }
