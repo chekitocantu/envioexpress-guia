@@ -73,8 +73,6 @@ function arrancarAuth() {
       document.getElementById('menuUser').textContent = user.email || '';
       iniciarSnapshot();
       irVista('clientes');
-      // la app ya es visible: ahora el panel tiene medidas reales para colocar el divisor
-      requestAnimationFrame(posicionarHandle);
     } else {
       detenerSnapshot();
       document.getElementById('app').classList.remove('active');
@@ -514,72 +512,31 @@ function toast(titulo, cuerpo, alerta) {
 }
 
 /* =========================================================
-   Panel de tareas ajustable (ancho guardado por dispositivo)
+   Panel de tareas ajustable: slider abajo del panel
+   (ancho guardado por dispositivo en localStorage)
    ========================================================= */
 const TAREAS_W_KEY = 'crm_tareas_w';
 const TAREAS_W_MIN = 240;
 const TAREAS_W_MAX = 560;
+const TAREAS_W_DEF = 320;
 
 function aplicarAnchoTareas(px) {
   const w = Math.max(TAREAS_W_MIN, Math.min(TAREAS_W_MAX, px));
   document.documentElement.style.setProperty('--tareas-w', w + 'px');
-  posicionarHandle();
   return w;
 }
 
-// Coloca el divisor (position:fixed) justo sobre el borde izquierdo del panel.
-function posicionarHandle() {
-  const handle = document.getElementById('resizer');
-  const aside = document.querySelector('.col-tareas');
-  if (!handle || !aside) return;
-  if (window.innerWidth <= 820) { handle.style.display = 'none'; return; }
-  handle.style.display = 'block';
-  handle.style.left = aside.getBoundingClientRect().left + 'px';
-}
-
 function initResizer() {
+  const slider = document.getElementById('anchoPanel');
+  if (!slider) return;
+
   const guardado = parseInt(localStorage.getItem(TAREAS_W_KEY), 10);
-  if (!isNaN(guardado)) aplicarAnchoTareas(guardado);
-  else posicionarHandle();
+  const inicial = isNaN(guardado) ? TAREAS_W_DEF : guardado;
+  slider.value = aplicarAnchoTareas(inicial);
 
-  const handle = document.getElementById('resizer');
-  if (!handle) return;
-  let dragging = false;
-
-  // mantener el divisor pegado al borde al cambiar el tamaño de la ventana
-  window.addEventListener('resize', posicionarHandle);
-
-  const onMove = e => {
-    if (!dragging) return;
-    const x = (e.touches ? e.touches[0].clientX : e.clientX);
-    aplicarAnchoTareas(window.innerWidth - x); // el panel está pegado al borde derecho
-  };
-  const onUp = () => {
-    if (!dragging) return;
-    dragging = false;
-    handle.classList.remove('active');
-    document.body.classList.remove('resizing');
-    const actual = getComputedStyle(document.documentElement).getPropertyValue('--tareas-w').trim();
-    const px = parseInt(actual, 10);
-    if (!isNaN(px)) localStorage.setItem(TAREAS_W_KEY, px);
-  };
-  const onDown = e => {
-    dragging = true;
-    handle.classList.add('active');
-    document.body.classList.add('resizing');
-    e.preventDefault();
-  };
-
-  handle.addEventListener('mousedown', onDown);
-  handle.addEventListener('touchstart', onDown, { passive: false });
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('touchmove', onMove, { passive: false });
-  window.addEventListener('mouseup', onUp);
-  window.addEventListener('touchend', onUp);
-  // doble clic restablece el ancho por defecto
-  handle.addEventListener('dblclick', () => {
-    document.documentElement.style.removeProperty('--tareas-w');
-    localStorage.removeItem(TAREAS_W_KEY);
+  slider.addEventListener('input', () => {
+    const w = aplicarAnchoTareas(parseInt(slider.value, 10));
+    localStorage.setItem(TAREAS_W_KEY, w);
   });
 }
 

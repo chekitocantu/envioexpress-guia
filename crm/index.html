@@ -283,12 +283,17 @@
 
   </main>
 
-  <!-- DERECHA: TAREAS DEL DÍA (~20%, ancho ajustable) -->
+  <!-- DERECHA: TAREAS DEL DÍA (~20%, ancho ajustable con el slider de abajo) -->
   <aside class="col-tareas">
-    <div class="resizer" id="resizer" title="Arrastra para ajustar el ancho"></div>
-    <h2>Tareas de hoy</h2>
-    <div class="day" id="hoyFecha"></div>
-    <div id="tareasLista"></div>
+    <div class="tareas-scroll">
+      <h2>Tareas de hoy</h2>
+      <div class="day" id="hoyFecha"></div>
+      <div id="tareasLista"></div>
+    </div>
+    <div class="panel-resize">
+      <span class="pr-ic">↔</span>
+      <input type="range" id="anchoPanel" min="240" max="560" step="10" title="Ancho del panel">
+    </div>
   </aside>
 
 </div>
