@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Cartera compartida del equipo: solo usuarios autenticados
+    // (la cuenta compartida) pueden leer y escribir.
+    match /clientes/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

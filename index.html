@@ -663,6 +663,29 @@
     color: var(--amber);
     padding: 4px 8px;
   }
+
+  /* LOGIN */
+  .login-wrap { max-width: 380px; margin: 2rem auto 0; }
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+  }
+  .login-err {
+    display: none;
+    color: var(--red);
+    font-size: 13px;
+    margin: 4px 0 2px;
+    line-height: 1.4;
+  }
+  .login-err.show { display: block; }
+  .login-hint {
+    text-align: center;
+    color: var(--hint);
+    font-size: 12px;
+    margin-top: 1rem;
+  }
 </style>
 </head>
 <body>
@@ -671,7 +694,10 @@
   <!-- HEADER -->
   <div class="header">
     <div class="logo" onclick="irInicio()">envio<span>express</span></div>
-    <div class="call-badge" id="callBadge" style="display:none;">En llamada</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="call-badge" id="callBadge" style="display:none;">En llamada</div>
+      <button class="btn" id="btnLogout" style="display:none;padding:6px 13px;font-size:12px;" onclick="cerrarSesion()">Salir</button>
+    </div>
   </div>
 
   <!-- NOTIF PERMISSION BANNER -->
@@ -682,8 +708,31 @@
     <button class="close-x" onclick="cerrarBanner()">✕</button>
   </div>
 
+  <!-- ===================== VIEW: LOGIN ===================== -->
+  <div class="view active" id="vista-login">
+    <div class="login-wrap">
+      <div class="home-intro" style="text-align:center;margin-bottom:1.5rem;">
+        <h1>Inicia sesión</h1>
+        <p>Entra con la cuenta del equipo para ver y gestionar la cartera compartida.</p>
+      </div>
+      <div class="login-card">
+        <div class="field" id="fieldLoginEmail">
+          <label for="loginEmail">Correo del equipo</label>
+          <input type="email" id="loginEmail" placeholder="correo@equipo.com" autocomplete="username" inputmode="email">
+        </div>
+        <div class="field" id="fieldLoginPass">
+          <label for="loginPass">Contraseña</label>
+          <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div class="login-err" id="loginErr"></div>
+        <button class="btn primary" id="btnLogin" style="width:100%;justify-content:center;margin-top:6px;" onclick="iniciarSesion()">Entrar</button>
+      </div>
+      <p class="login-hint" id="loginStatus">Conectando con el servidor…</p>
+    </div>
+  </div>
+
   <!-- ===================== VIEW: INICIO ===================== -->
-  <div class="view active" id="vista-inicio">
+  <div class="view" id="vista-inicio">
     <div class="home-intro">
       <h1>Centro de llamadas</h1>
       <p>Registra a tus clientes, sigue la guía y agenda tus seguimientos sin perder ninguno.</p>
@@ -1072,5 +1121,6 @@
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script src="app.js"></script>
+<script type="module" src="firebase-init.js"></script>
 </body>
 </html>

@@ -1,9 +1,10 @@
 /* Service worker — cache offline básico (app shell) */
-const CACHE = 'envioexpress-v1';
+const CACHE = 'envioexpress-v2';
 const ASSETS = [
   './',
   './index.html',
   './app.js',
+  './firebase-init.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png'

@@ -1,3 +1,5 @@
 # Archivos solo de desarrollo local (no se publican)
 .devserver.ps1
 .claude/
+firebase-debug.log
+*.log

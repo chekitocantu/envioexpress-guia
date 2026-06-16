@@ -1,49 +1,137 @@
 /* =========================================================
    EnvíoExpress — App de guía de llamada
-   Estado en localStorage + navegación + scheduler de avisos
+   Datos compartidos en Firebase (Firestore) + login de equipo
    ========================================================= */
 
 'use strict';
 
-const STORAGE_KEY = 'ee_clientes';
 const STEP_LABELS = ['Apertura', 'Valor', 'Escucha y objeciones', 'Vs competencia', 'Resultado'];
 const CALLBACK_LEAD_MS = 5 * 60 * 1000;        // 5 min antes
 const CITA_LEAD_MS = 24 * 60 * 60 * 1000;      // 1 día antes
 const CHECK_INTERVAL_MS = 30 * 1000;           // revisa cada 30 s
+const NOTIFIED_KEY = 'ee_notified';            // dedupe de avisos (por dispositivo)
 
 /* ---------- Estado en memoria ---------- */
 let clientes = [];
 let clienteActivoId = null;   // cliente en curso dentro de la guía
 let cur = 0;                  // paso actual de la guía
 let resultadoSel = null;      // resultado elegido en el paso final
+let snapUnsub = null;         // para cancelar el listener de Firestore
 
 /* =========================================================
-   Persistencia
+   Datos (Firestore)
+   La colección 'clientes' es la cartera compartida del equipo.
+   El array `clientes` se mantiene en vivo con onSnapshot.
    ========================================================= */
-function cargarClientes() {
-  try {
-    clientes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch (e) {
-    clientes = [];
-  }
-}
-
-function guardarClientes() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(clientes));
-}
-
 function getCliente(id) {
   return clientes.find(c => c.id === id) || null;
 }
 
+// Guarda/actualiza un cliente: optimista en memoria + escritura a Firestore.
 function upsertCliente(cli) {
   const i = clientes.findIndex(c => c.id === cli.id);
   if (i >= 0) clientes[i] = cli; else clientes.push(cli);
-  guardarClientes();
+  if (window.FB) {
+    FB.setDoc(FB.doc(FB.db, 'clientes', cli.id), cli)
+      .catch(err => toast('Error al guardar', err.message, true));
+  }
 }
 
 function nuevoId() {
   return 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function iniciarSnapshot() {
+  if (snapUnsub || !window.FB) return;
+  snapUnsub = FB.onSnapshot(
+    FB.collection(FB.db, 'clientes'),
+    snap => {
+      clientes = snap.docs.map(d => d.data());
+      actualizarHomeCount();
+      if (document.getElementById('vista-agenda').classList.contains('active')) renderAgenda();
+      revisarRecordatorios();
+    },
+    err => toast('Error de sincronización', err.message, true)
+  );
+}
+
+function detenerSnapshot() {
+  if (snapUnsub) { snapUnsub(); snapUnsub = null; }
+  clientes = [];
+}
+
+/* =========================================================
+   Autenticación (cuenta compartida del equipo)
+   ========================================================= */
+function arrancarAuth() {
+  document.getElementById('loginStatus').textContent = '';
+  FB.onAuthStateChanged(FB.auth, user => {
+    if (user) {
+      mostrarLogueado();
+      iniciarSnapshot();
+    } else {
+      detenerSnapshot();
+      mostrarLogin();
+    }
+  });
+}
+
+function mostrarLogin() {
+  document.getElementById('btnLogout').style.display = 'none';
+  document.getElementById('callBadge').style.display = 'none';
+  mostrarVista('vista-login');
+}
+
+function mostrarLogueado() {
+  document.getElementById('btnLogout').style.display = 'inline-flex';
+  document.getElementById('loginPass').value = '';
+  actualizarHomeCount();
+  mostrarVista('vista-inicio');
+}
+
+function iniciarSesion() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginErr');
+  err.classList.remove('show');
+
+  if (!email || !pass) {
+    err.textContent = 'Escribe correo y contraseña.';
+    err.classList.add('show');
+    return;
+  }
+  if (!window.FB) {
+    err.textContent = 'Aún conectando con el servidor, intenta en un momento.';
+    err.classList.add('show');
+    return;
+  }
+
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true;
+  btn.textContent = 'Entrando…';
+  FB.signInWithEmailAndPassword(FB.auth, email, pass)
+    .catch(e => {
+      err.textContent = mensajeErrorLogin(e.code);
+      err.classList.add('show');
+    })
+    .finally(() => { btn.disabled = false; btn.textContent = 'Entrar'; });
+}
+
+function cerrarSesion() {
+  if (window.FB) FB.signOut(FB.auth);
+}
+
+function mensajeErrorLogin(code) {
+  switch (code) {
+    case 'auth/invalid-email': return 'El correo no es válido.';
+    case 'auth/missing-password': return 'Escribe la contraseña.';
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found': return 'Correo o contraseña incorrectos.';
+    case 'auth/too-many-requests': return 'Demasiados intentos. Espera un momento e inténtalo de nuevo.';
+    case 'auth/network-request-failed': return 'Sin conexión. Revisa tu internet.';
+    default: return 'No se pudo iniciar sesión. Inténtalo de nuevo.';
+  }
 }
 
 /* =========================================================
@@ -56,9 +144,11 @@ function mostrarVista(id) {
 }
 
 function irInicio() {
-  document.getElementById('callBadge').style.display = 'none';
-  actualizarHomeCount();
-  mostrarVista('vista-inicio');
+  if (window.FB && FB.auth.currentUser) {
+    document.getElementById('callBadge').style.display = 'none';
+    actualizarHomeCount();
+    mostrarVista('vista-inicio');
+  }
 }
 
 function irAgenda() {
@@ -77,7 +167,6 @@ function irGuia(clienteId) {
   document.getElementById('cbCall').href = 'tel:' + cli.telefono.replace(/\s+/g, '');
   document.getElementById('callBadge').style.display = 'flex';
 
-  // reset guía
   resultadoSel = null;
   resetResultadoUI();
   goTo(0);
@@ -125,9 +214,7 @@ function crearCliente() {
     callbackEn: null,
     citaEn: null,
     citaDireccion: null,
-    notas: '',
-    avisadoCallback: false,
-    avisadoCita: false
+    notas: ''
   };
   upsertCliente(cli);
   cerrarModalNuevo();
@@ -153,7 +240,6 @@ function goTo(n) {
   document.getElementById('btnPrev').disabled = cur === 0;
 
   const btnNext = document.getElementById('btnNext');
-  // En el último paso ocultamos "Siguiente" (el cierre se hace con el botón de guardar)
   btnNext.style.visibility = cur === STEP_LABELS.length - 1 ? 'hidden' : 'visible';
   btnNext.textContent = 'Siguiente →';
 
@@ -204,7 +290,8 @@ function guardarResultado() {
     if (!esFechaFutura(val)) return marcarInvalido('callbackDT');
     cli.estado = 'por_contactar';
     cli.callbackEn = new Date(val).toISOString();
-    cli.avisadoCallback = false;
+    cli.citaEn = null;
+    cli.citaDireccion = null;
     cli.notas = document.getElementById('notasCallback').value.trim();
   } else if (resultadoSel === 'cita_agendada') {
     const val = document.getElementById('citaDT').value;
@@ -212,10 +299,12 @@ function guardarResultado() {
     cli.estado = 'cita_agendada';
     cli.citaEn = new Date(val).toISOString();
     cli.citaDireccion = document.getElementById('citaDir').value.trim();
-    cli.avisadoCita = false;
+    cli.callbackEn = null;
     cli.notas = document.getElementById('notasCita').value.trim();
   } else if (resultadoSel === 'no_interesado') {
     cli.estado = 'no_interesado';
+    cli.callbackEn = null;
+    cli.citaEn = null;
     cli.notas = document.getElementById('notasNo').value.trim();
   }
 
@@ -263,19 +352,19 @@ function recordatoriosProximos() {
     }
   });
   return lista
-    .filter(r => r.when.getTime() > Date.now() - 60 * 60 * 1000) // incluye los de la última hora
+    .filter(r => r.when.getTime() > Date.now() - 60 * 60 * 1000)
     .sort((a, b) => a.when - b.when);
 }
 
 function actualizarHomeCount() {
   const n = recordatoriosProximos().length;
   const el = document.getElementById('homeCount');
+  if (!el) return;
   el.textContent = n;
   el.classList.toggle('hidden', n === 0);
 }
 
 function renderAgenda() {
-  // recordatorios
   const recs = recordatoriosProximos();
   const recSection = document.getElementById('remindersSection');
   const recList = document.getElementById('remindersList');
@@ -300,10 +389,9 @@ function renderAgenda() {
     }).join('');
   }
 
-  // lista de clientes
   const list = document.getElementById('clientList');
   if (clientes.length === 0) {
-    list.innerHTML = `<div class="empty-state">Aún no tienes clientes. Toca <strong>+ Nuevo</strong> para empezar.</div>`;
+    list.innerHTML = `<div class="empty-state">Aún no hay clientes. Toca <strong>+ Nuevo</strong> para empezar.</div>`;
     return;
   }
   const ordenados = [...clientes].sort((a, b) => new Date(b.creadoEn) - new Date(a.creadoEn));
@@ -337,13 +425,16 @@ function eliminarCliente(id) {
   if (!cli) return;
   if (!confirm('¿Eliminar a ' + cli.nombre + '? Esta acción no se puede deshacer.')) return;
   clientes = clientes.filter(c => c.id !== id);
-  guardarClientes();
+  if (window.FB) {
+    FB.deleteDoc(FB.doc(FB.db, 'clientes', id))
+      .catch(err => toast('Error al eliminar', err.message, true));
+  }
   renderAgenda();
   actualizarHomeCount();
 }
 
 /* =========================================================
-   Notificaciones / scheduler
+   Notificaciones / scheduler (dedupe local por dispositivo)
    ========================================================= */
 function pedirPermisoNotif() {
   if (!('Notification' in window)) {
@@ -374,43 +465,49 @@ function quizasMostrarBanner() {
 }
 
 function dispararNotif(titulo, cuerpo) {
-  // Notificación del sistema si hay permiso…
   if ('Notification' in window && Notification.permission === 'granted') {
     try {
       const n = new Notification(titulo, { body: cuerpo, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
       n.onclick = () => { window.focus(); irAgenda(); n.close(); };
     } catch (e) { /* algunos navegadores requieren SW para notificar */ }
   }
-  // …y siempre el aviso visual dentro de la app
   toast(titulo, cuerpo, true);
+}
+
+function getNotified() {
+  try { return new Set(JSON.parse(localStorage.getItem(NOTIFIED_KEY) || '[]')); }
+  catch (e) { return new Set(); }
+}
+function saveNotified(set) {
+  localStorage.setItem(NOTIFIED_KEY, JSON.stringify([...set]));
 }
 
 function revisarRecordatorios() {
   const ahora = Date.now();
+  const notified = getNotified();
   let cambios = false;
 
   clientes.forEach(c => {
-    if (c.estado === 'por_contactar' && c.callbackEn && !c.avisadoCallback) {
+    if (c.estado === 'por_contactar' && c.callbackEn) {
       const t = new Date(c.callbackEn).getTime();
-      if (ahora >= t - CALLBACK_LEAD_MS && ahora <= t + 60 * 60 * 1000) {
+      const key = 'cb:' + c.id + ':' + c.callbackEn;
+      if (!notified.has(key) && ahora >= t - CALLBACK_LEAD_MS && ahora <= t + 60 * 60 * 1000) {
         dispararNotif('Seguimiento en 5 min', `Llama a ${c.nombre} (${c.telefono}) a las ${fmtHora(new Date(t))}`);
-        c.avisadoCallback = true;
-        cambios = true;
+        notified.add(key); cambios = true;
       }
     }
-    if (c.estado === 'cita_agendada' && c.citaEn && !c.avisadoCita) {
+    if (c.estado === 'cita_agendada' && c.citaEn) {
       const t = new Date(c.citaEn).getTime();
-      if (ahora >= t - CITA_LEAD_MS && ahora <= t) {
+      const key = 'ci:' + c.id + ':' + c.citaEn;
+      if (!notified.has(key) && ahora >= t - CITA_LEAD_MS && ahora <= t) {
         const dir = c.citaDireccion ? ` en ${c.citaDireccion}` : '';
         dispararNotif('Recordatorio de cita', `Tienes una cita con ${c.nombre}${dir} el ${fmtFecha(new Date(t))}`);
-        c.avisadoCita = true;
-        cambios = true;
+        notified.add(key); cambios = true;
       }
     }
   });
 
-  if (cambios) guardarClientes();
-  // refresca contadores/agenda si están visibles
+  if (cambios) saveNotified(notified);
   actualizarHomeCount();
   if (document.getElementById('vista-agenda').classList.contains('active')) renderAgenda();
 }
@@ -463,7 +560,6 @@ function cuentaRegresiva(d) {
    ========================================================= */
 function registrarSW() {
   if ('serviceWorker' in navigator) {
-    // Solo funciona sobre http(s); en file:// se ignora silenciosamente
     navigator.serviceWorker.register('sw.js').catch(() => { /* sin SW: la app sigue funcionando */ });
   }
 }
@@ -472,25 +568,28 @@ function registrarSW() {
    Init
    ========================================================= */
 function init() {
-  cargarClientes();
-  actualizarHomeCount();
   quizasMostrarBanner();
-  revisarRecordatorios();
   setInterval(revisarRecordatorios, CHECK_INTERVAL_MS);
 
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) revisarRecordatorios();
   });
 
-  // Enter en el modal de nuevo cliente
   document.getElementById('inTel').addEventListener('keydown', e => {
     if (e.key === 'Enter') crearCliente();
+  });
+  document.getElementById('loginPass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') iniciarSesion();
   });
   document.getElementById('modalNuevo').addEventListener('click', e => {
     if (e.target.id === 'modalNuevo') cerrarModalNuevo();
   });
 
   registrarSW();
+
+  // Firebase puede estar listo antes o después de este punto
+  if (window.FB) arrancarAuth();
+  else window.addEventListener('fb-ready', arrancarAuth, { once: true });
 }
 
 document.addEventListener('DOMContentLoaded', init);
