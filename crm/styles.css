@@ -429,8 +429,18 @@ input[type="datetime-local"] { color-scheme: light; }
 .toast-wrap { position: fixed; top: 16px; right: 16px; z-index: 80; display: flex; flex-direction: column; gap: 10px; max-width: 340px; }
 .toast { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--green); border-radius: var(--radius-sm); padding: 13px 15px; box-shadow: 0 10px 30px rgba(0,0,0,.12); animation: slideIn .25s ease; }
 .toast.alert { border-left-color: var(--brand); }
+.toast .t-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .toast .t-title { font-weight: 700; font-size: 13.5px; margin-bottom: 2px; }
 .toast .t-body { font-size: 12.5px; color: var(--muted); }
+.toast .t-info { background: none; border: none; cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; border-radius: 6px; flex-shrink: 0; }
+.toast .t-info:hover { background: var(--surface2); }
+.toast .t-detail {
+  margin-top: 8px; padding: 8px 10px; background: var(--surface2);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  font-size: 11.5px; line-height: 1.5; color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap; word-break: break-word; max-height: 180px; overflow-y: auto;
+}
 @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
 
 /* ===================== MAPS (OpenStreetMap) ===================== */

@@ -528,14 +528,30 @@ function fmtFecha(d) { return d.toLocaleString('es-MX', { weekday: 'short', day:
 function fmtFechaCorta(d) { return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }); }
 function fmtHora(d) { return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }); }
 
-function toast(titulo, cuerpo, alerta) {
+function toast(titulo, cuerpo, alerta, detalle) {
   const wrap = document.getElementById('toastWrap');
   const el = document.createElement('div');
   el.className = 'toast' + (alerta ? ' alert' : '');
-  el.innerHTML = `<div class="t-title">${escapeHtml(titulo)}</div><div class="t-body">${escapeHtml(cuerpo)}</div>`;
-  el.onclick = () => el.remove();
+  let html = `<div class="t-head"><div class="t-title">${escapeHtml(titulo)}</div>`;
+  if (detalle) html += `<button class="t-info" type="button" title="Ver detalle técnico" aria-label="Ver detalle técnico">ℹ️</button>`;
+  html += `</div><div class="t-body">${escapeHtml(cuerpo)}</div>`;
+  if (detalle) html += `<div class="t-detail" hidden>${escapeHtml(detalle)}</div>`;
+  el.innerHTML = html;
+
+  const cerrar = () => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); };
+  let timer = setTimeout(cerrar, detalle ? 14000 : 6000);
+  el.addEventListener('click', cerrar);
+
+  if (detalle) {
+    const info = el.querySelector('.t-info');
+    const det = el.querySelector('.t-detail');
+    info.addEventListener('click', e => {
+      e.stopPropagation();      // no cerrar el toast al abrir el detalle
+      clearTimeout(timer);      // dejar de auto-cerrar mientras se lee
+      det.hidden = !det.hidden;
+    });
+  }
   wrap.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 6000);
 }
 
 /* =========================================================
@@ -731,7 +747,7 @@ function buscarZonaMaps() {
       mapa.setCenter(res[0].geometry.location);
       mapa.setZoom(16);
     } else {
-      toast('Sin resultados', 'No se encontró esa zona.', true);
+      toast('Sin resultados', 'Toca ℹ️ para ver el detalle técnico de Google.', true, 'Geocoding status: ' + status);
     }
   });
 }
@@ -758,7 +774,8 @@ async function agregarClienteDesdeMapa() {
       giro: place.primaryTypeDisplayName || giroDesdeTypes(place.types)
     });
   } catch (e) {
-    toast('No se pudo obtener el negocio', 'Intenta con otro o de nuevo.', true);
+    const detalle = (e && (e.message || e.toString())) || 'Error desconocido.';
+    toast('No se pudo obtener el negocio', 'Toca ℹ️ para ver el detalle técnico de Google.', true, detalle);
   }
 }
 
