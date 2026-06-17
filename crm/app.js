@@ -315,8 +315,19 @@ function agregarInteraccion(cli, data) {
 function tareasPendientes() {
   const out = [];
   clientes.forEach(c => {
+    // Última vez que se marcó al cliente como "No interesado".
+    // Si una tarea se programó antes de eso, ya no es relevante y se oculta.
+    let ultimoNoInteresado = 0;
+    (c.interacciones || []).forEach(it => {
+      if (it.paso === 'no_interesado') {
+        const t = new Date(it.fecha).getTime();
+        if (t > ultimoNoInteresado) ultimoNoInteresado = t;
+      }
+    });
     (c.interacciones || []).forEach(it => {
       if ((it.paso === 'cita' || it.paso === 'seguimiento') && it.cuando) {
+        // Excluir tareas registradas antes (o a la vez) del último "No interesado".
+        if (new Date(it.fecha).getTime() <= ultimoNoInteresado) return;
         out.push({ clienteId: c.id, nombre: c.nombre, telefono: c.telefono, paso: it.paso, when: new Date(it.cuando) });
       }
     });
