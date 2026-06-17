@@ -58,6 +58,7 @@ function iniciarSnapshot() {
 
 function detenerSnapshot() {
   if (snapUnsub) { snapUnsub(); snapUnsub = null; }
+  if (mapsUsoUnsub) { mapsUsoUnsub(); mapsUsoUnsub = null; }
   clientes = [];
 }
 
@@ -72,6 +73,7 @@ function arrancarAuth() {
       document.getElementById('app').classList.add('active');
       document.getElementById('menuUser').textContent = user.email || '';
       iniciarSnapshot();
+      suscribirUsoMaps();
       irVista('clientes');
     } else {
       detenerSnapshot();
@@ -131,6 +133,10 @@ function irVista(v) {
     document.getElementById('vista-speech').classList.add('active');
     document.getElementById('mi-speech').classList.add('active');
     mostrarSpeechPick();
+  } else if (v === 'maps') {
+    document.getElementById('vista-maps').classList.add('active');
+    document.getElementById('mi-maps').classList.add('active');
+    initMapaOSM();
   }
 }
 
@@ -195,6 +201,16 @@ function abrirModalCliente(id) {
 }
 function cerrarModalCliente() { document.getElementById('modalCliente').classList.remove('active'); }
 function editarClienteActual() { abrirModalCliente(detalleId); }
+
+/* Abre el modal en modo "nuevo cliente" prellenado con datos externos (p. ej. del mapa).
+   El usuario revisa y guarda con guardarCliente() (sin cambios). */
+function abrirModalClientePrefill(data) {
+  abrirModalCliente();
+  document.getElementById('cNombre').value = data.nombre || '';
+  document.getElementById('cTel').value = data.telefono || '';
+  document.getElementById('cCorreo').value = data.correo || '';
+  document.getElementById('cGiro').value = data.giro || '';
+}
 
 function guardarCliente() {
   const nombre = document.getElementById('cNombre').value.trim();
@@ -523,6 +539,230 @@ function toast(titulo, cuerpo, alerta) {
 }
 
 /* =========================================================
+   Buscar clientes en Maps (Google Maps Platform)
+   - Mapa: Maps JavaScript API (los POIs/negocios los pinta Google).
+   - Click en un negocio → se obtiene su placeId (solo el click izquierdo
+     entrega placeId; es limitación de la API) y aparece el menú "Agregar
+     cliente". Al confirmarlo se hace 1 Place Details para traer los datos.
+   - Búsqueda de zona → Geocoding.
+   Tope de uso: máx. 1000 llamadas por periodo mensual que inicia el día 17.
+   El contador es compartido por el equipo (Firestore: meta/mapsUsage).
+   ========================================================= */
+
+// API key de Google Maps. NO se guarda en el repo: se define en
+// crm/config.local.js (ignorado por git) como window.CRM_CONFIG.GOOGLE_MAPS_API_KEY.
+// Recuerda restringir la key por dominio (*.web.app) en Google Cloud.
+const GOOGLE_MAPS_API_KEY = (window.CRM_CONFIG && window.CRM_CONFIG.GOOGLE_MAPS_API_KEY) || 'PEGA_TU_API_KEY_AQUI';
+
+let mapa = null;
+let geocoder = null;
+let poiSeleccionado = null;     // { placeId }
+let mapsInit = false;
+let googleCargando = false;
+
+const MAPS_POS_KEY = 'crm_maps_pos';
+const MAPS_DEF = { lat: 19.4326, lon: -99.1332, zoom: 15 }; // CDMX por defecto
+
+/* ---------- Tope de llamadas: 1000 por mes, reinicia el día 17 ---------- */
+const MAPS_CAP = 1000;
+const MAPS_RESET_DAY = 17;
+const MAPS_USO_LS = 'crm_maps_uso';
+let mapsUso = { periodo: null, count: 0 };
+let mapsUsoUnsub = null;
+
+// Identificador del periodo actual: la fecha del día 17 que lo inició (YYYY-MM-DD).
+function periodoMaps(d) {
+  d = d || new Date();
+  let y = d.getFullYear(), m = d.getMonth();
+  if (d.getDate() < MAPS_RESET_DAY) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(MAPS_RESET_DAY).padStart(2, '0')}`;
+}
+
+// Suscripción al contador compartido del equipo (se llama tras autenticar).
+function suscribirUsoMaps() {
+  if (mapsUsoUnsub || !window.FB) return;
+  mapsUsoUnsub = FB.onSnapshot(
+    FB.doc(FB.db, 'meta', 'mapsUsage'),
+    snap => { const d = snap.data(); if (d) mapsUso = { periodo: d.periodo, count: d.count || 0 }; actualizarHintUso(); },
+    () => {}
+  );
+}
+
+function usoMapsActual() {
+  const p = periodoMaps();
+  if (!window.FB) {
+    try { const l = JSON.parse(localStorage.getItem(MAPS_USO_LS)); if (l && l.periodo === p) return l.count; } catch (e) {}
+    return 0;
+  }
+  return mapsUso.periodo === p ? mapsUso.count : 0;
+}
+
+function puedeLlamarMaps(n) { return usoMapsActual() + (n || 1) <= MAPS_CAP; }
+
+function registrarLlamadaMaps(n) {
+  const p = periodoMaps();
+  const nuevo = { periodo: p, count: usoMapsActual() + (n || 1), actualizado: new Date().toISOString() };
+  mapsUso = { periodo: p, count: nuevo.count };
+  if (window.FB) FB.setDoc(FB.doc(FB.db, 'meta', 'mapsUsage'), nuevo).catch(() => {});
+  else { try { localStorage.setItem(MAPS_USO_LS, JSON.stringify(nuevo)); } catch (e) {} }
+  actualizarHintUso();
+}
+
+function actualizarHintUso() {
+  const hint = document.getElementById('mapsHint');
+  if (!hint || !mapsInit) return;
+  const restantes = Math.max(0, MAPS_CAP - usoMapsActual());
+  hint.textContent = `Click en un negocio para agregarlo · ${restantes}/${MAPS_CAP} llamadas restantes (reinicia el 17)`;
+}
+
+function mostrarLimiteMaps() {
+  const hint = document.getElementById('mapsHint');
+  if (hint) hint.textContent = `Límite mensual alcanzado (${MAPS_CAP} llamadas). Se reinicia el día 17.`;
+  toast('Límite de Maps alcanzado', `Se llegó al tope de ${MAPS_CAP} llamadas este mes. Se reinicia el día 17.`, true);
+}
+
+/* ---------- Categorías de Google (place.types) → giro en español ---------- */
+const GIRO_GOOGLE = {
+  restaurant: 'Restaurante', cafe: 'Cafetería', meal_takeaway: 'Comida rápida',
+  meal_delivery: 'Comida a domicilio', bar: 'Bar', bakery: 'Panadería',
+  supermarket: 'Supermercado', grocery_or_supermarket: 'Supermercado',
+  convenience_store: 'Tienda de conveniencia', store: 'Tienda', clothing_store: 'Ropa',
+  shoe_store: 'Zapatería', hardware_store: 'Ferretería', furniture_store: 'Muebles',
+  electronics_store: 'Electrónica', book_store: 'Librería', florist: 'Florería',
+  jewelry_store: 'Joyería', pet_store: 'Mascotas', liquor_store: 'Vinos y licores',
+  pharmacy: 'Farmacia', drugstore: 'Farmacia', bank: 'Banco', atm: 'Cajero',
+  hospital: 'Hospital', doctor: 'Consultorio', dentist: 'Dentista',
+  veterinary_care: 'Veterinaria', beauty_salon: 'Estética', hair_care: 'Estética',
+  gym: 'Gimnasio', spa: 'Spa', school: 'Escuela', lodging: 'Hotel',
+  gas_station: 'Gasolinera', car_repair: 'Taller mecánico', car_dealer: 'Automotriz',
+  car_wash: 'Autolavado', laundry: 'Lavandería', real_estate_agency: 'Inmobiliaria',
+  insurance_agency: 'Seguros', lawyer: 'Despacho legal', accounting: 'Contabilidad',
+  travel_agency: 'Agencia de viajes'
+};
+
+function giroDesdeTypes(types) {
+  if (!types || !types.length) return '';
+  for (const t of types) if (GIRO_GOOGLE[t]) return GIRO_GOOGLE[t];
+  const t = types.find(x => !['point_of_interest', 'establishment'].includes(x));
+  return t ? t.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()) : '';
+}
+
+/* ---------- Carga diferida del API de Google Maps ---------- */
+function cargarGoogleMapsAPI(cb) {
+  if (window.google && window.google.maps) { cb(); return; }
+  if (googleCargando) { window.addEventListener('gmaps-ready', cb, { once: true }); return; }
+  googleCargando = true;
+  window.__gmapsReady = function () { window.dispatchEvent(new Event('gmaps-ready')); cb(); };
+  const s = document.createElement('script');
+  s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_MAPS_API_KEY) +
+          '&libraries=places&loading=async&callback=__gmapsReady';
+  s.async = true; s.defer = true;
+  s.onerror = () => {
+    googleCargando = false;
+    const hint = document.getElementById('mapsHint');
+    if (hint) hint.textContent = 'No se pudo cargar Google Maps. Revisa la API key, sus restricciones y tu conexión.';
+    toast('Mapa no disponible', 'No se pudo cargar Google Maps.', true);
+  };
+  document.head.appendChild(s);
+}
+
+function initMapaOSM() { // (nombre conservado: lo llama irVista('maps'))
+  if (mapsInit) { actualizarHintUso(); return; }
+  const hint = document.getElementById('mapsHint');
+
+  if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.indexOf('PEGA_TU_API_KEY') === 0) {
+    if (hint) hint.textContent = 'Falta configurar GOOGLE_MAPS_API_KEY en crm/app.js.';
+    return;
+  }
+  if (!puedeLlamarMaps(1)) { mostrarLimiteMaps(); return; }
+  if (hint) hint.textContent = 'Cargando mapa…';
+  cargarGoogleMapsAPI(crearMapaGoogle);
+}
+
+function crearMapaGoogle() {
+  if (mapsInit || !(window.google && window.google.maps)) return;
+  if (!puedeLlamarMaps(1)) { mostrarLimiteMaps(); return; }
+
+  let pos = MAPS_DEF;
+  try { const g = JSON.parse(localStorage.getItem(MAPS_POS_KEY)); if (g && g.lat) pos = g; } catch (e) {}
+
+  mapa = new google.maps.Map(document.getElementById('mapaOSM'), {
+    center: { lat: pos.lat, lng: pos.lon },
+    zoom: pos.zoom || 15,
+    clickableIcons: true,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false
+  });
+  geocoder = new google.maps.Geocoder();
+  mapsInit = true;
+  registrarLlamadaMaps(1); // carga del mapa (Dynamic Maps)
+
+  // Click izquierdo sobre un negocio: Google solo entrega placeId en 'click'.
+  mapa.addListener('click', ev => {
+    if (ev.placeId) {
+      ev.stop(); // evita el info window por defecto de Google
+      poiSeleccionado = { placeId: ev.placeId };
+      const de = ev.domEvent || {};
+      const menu = document.getElementById('mapCtx');
+      menu.style.left = (de.clientX || 0) + 'px';
+      menu.style.top = (de.clientY || 0) + 'px';
+      menu.style.display = 'block';
+    } else {
+      cerrarMenuMapa();
+    }
+  });
+  mapa.addListener('dragstart', cerrarMenuMapa);
+  mapa.addListener('idle', () => {
+    const c = mapa.getCenter();
+    if (c) localStorage.setItem(MAPS_POS_KEY, JSON.stringify({ lat: c.lat(), lon: c.lng(), zoom: mapa.getZoom() }));
+  });
+
+  actualizarHintUso();
+}
+
+function buscarZonaMaps() {
+  const q = (document.getElementById('mapsBuscar').value || '').trim();
+  if (!q || !mapa || !geocoder) return;
+  if (!puedeLlamarMaps(1)) { mostrarLimiteMaps(); return; }
+  registrarLlamadaMaps(1); // Geocoding
+  geocoder.geocode({ address: q }, (res, status) => {
+    if (status === 'OK' && res && res[0]) {
+      mapa.setCenter(res[0].geometry.location);
+      mapa.setZoom(16);
+    } else {
+      toast('Sin resultados', 'No se encontró esa zona.', true);
+    }
+  });
+}
+
+function cerrarMenuMapa() {
+  const menu = document.getElementById('mapCtx');
+  if (menu) menu.style.display = 'none';
+}
+
+async function agregarClienteDesdeMapa() {
+  cerrarMenuMapa();
+  if (!poiSeleccionado || !poiSeleccionado.placeId || !(window.google && google.maps.places)) return;
+  if (!puedeLlamarMaps(1)) { mostrarLimiteMaps(); return; }
+  registrarLlamadaMaps(1); // Place Details (API nueva: Place.fetchFields)
+  try {
+    const place = new google.maps.places.Place({ id: poiSeleccionado.placeId });
+    await place.fetchFields({
+      fields: ['displayName', 'nationalPhoneNumber', 'internationalPhoneNumber', 'types', 'primaryTypeDisplayName']
+    });
+    abrirModalClientePrefill({
+      nombre: place.displayName || '',
+      telefono: place.nationalPhoneNumber || place.internationalPhoneNumber || '',
+      correo: '', // Google no entrega correo del negocio
+      giro: place.primaryTypeDisplayName || giroDesdeTypes(place.types)
+    });
+  } catch (e) {
+    toast('No se pudo obtener el negocio', 'Intenta con otro o de nuevo.', true);
+  }
+}
+
+/* =========================================================
    Panel de tareas ajustable: slider abajo del panel
    (ancho guardado por dispositivo en localStorage)
    ========================================================= */
@@ -559,6 +799,8 @@ function init() {
   document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') iniciarSesion(); });
   document.getElementById('modalCliente').addEventListener('click', e => { if (e.target.id === 'modalCliente') cerrarModalCliente(); });
   document.getElementById('modalInteraccion').addEventListener('click', e => { if (e.target.id === 'modalInteraccion') cerrarModalInteraccion(); });
+  // cerrar el menú contextual del mapa al hacer click fuera de él
+  document.addEventListener('click', e => { if (!e.target.closest('#mapCtx')) cerrarMenuMapa(); });
 
   // refresca las tareas del día cada minuto (para que crucen de "hoy" a "vencidas")
   setInterval(renderTareas, 60 * 1000);

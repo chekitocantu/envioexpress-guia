@@ -41,6 +41,9 @@
     <button class="menu-item" id="mi-speech" onclick="irVista('speech')">
       <span class="ic">🎙️</span><span class="txt">Speech Flow</span>
     </button>
+    <button class="menu-item" id="mi-maps" onclick="irVista('maps')">
+      <span class="ic">🗺️</span><span class="txt">Buscar clientes en Maps</span>
+    </button>
     <div class="menu-spacer"></div>
     <div class="menu-user" id="menuUser"></div>
     <button class="menu-item" onclick="cerrarSesion()">
@@ -281,6 +284,21 @@
 
     </section>
 
+    <!-- VISTA: BUSCAR CLIENTES EN MAPS -->
+    <section class="view" id="vista-maps">
+      <div class="view-head">
+        <div class="view-title">Buscar clientes en Maps<small>Click sobre un negocio para agregarlo</small></div>
+        <div class="search-box maps-search">
+          <span>🔎</span>
+          <input type="text" id="mapsBuscar" placeholder="Buscar ciudad, colonia o zona…"
+                 onkeydown="if(event.key==='Enter')buscarZonaMaps()">
+          <button class="btn primary sm" onclick="buscarZonaMaps()">Ir</button>
+        </div>
+      </div>
+      <div class="maps-hint" id="mapsHint">Click sobre un negocio del mapa para agregarlo.</div>
+      <div id="mapaOSM"></div>
+    </section>
+
   </main>
 
   <!-- DERECHA: TAREAS DEL DÍA (~20%, ancho ajustable con el slider de abajo) -->
@@ -338,8 +356,15 @@
   </div>
 </div>
 
+<!-- MENÚ CONTEXTUAL DEL MAPA (al hacer click sobre un negocio) -->
+<div class="map-ctx" id="mapCtx">
+  <button onclick="agregarClienteDesdeMapa()">➕ Agregar cliente</button>
+</div>
+
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- Config local (API key) — ignorada por git, presente solo en el deploy -->
+<script src="config.local.js"></script>
 <script src="app.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </body>

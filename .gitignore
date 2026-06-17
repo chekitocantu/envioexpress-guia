@@ -3,3 +3,7 @@
 .claude/
 firebase-debug.log
 *.log
+
+# Configuración con secretos (API keys) — no versionar, sí se despliega
+crm/config.local.js
+.firebase/
