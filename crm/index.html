@@ -38,6 +38,9 @@
     <button class="menu-item active" id="mi-clientes" onclick="irVista('clientes')">
       <span class="ic">👥</span><span class="txt">Catálogo de Clientes</span>
     </button>
+    <button class="menu-item" id="mi-porcontactar" onclick="irVista('porcontactar')">
+      <span class="ic">📞</span><span class="txt">Clientes por contactar</span>
+    </button>
     <button class="menu-item" id="mi-speech" onclick="irVista('speech')">
       <span class="ic">🎙️</span><span class="txt">Speech Flow</span>
     </button>
@@ -75,6 +78,28 @@
         </table>
       </div>
       <div id="clientesEmpty"></div>
+    </section>
+
+    <!-- VISTA: CLIENTES POR CONTACTAR -->
+    <section class="view" id="vista-porcontactar">
+      <div class="view-head">
+        <div class="view-title">Clientes por contactar<small id="porContactarCount">0 clientes</small></div>
+        <div style="display:flex;gap:10px;">
+          <div class="search-box">
+            <span>🔎</span>
+            <input type="text" id="buscarPC" placeholder="Buscar por nombre, giro…" oninput="renderPorContactar()">
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Giro</th><th></th></tr>
+          </thead>
+          <tbody id="porContactarBody"></tbody>
+        </table>
+      </div>
+      <div id="porContactarEmpty"></div>
     </section>
 
     <!-- VISTA: DETALLE DE CLIENTE -->

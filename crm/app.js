@@ -125,6 +125,10 @@ function irVista(v) {
     document.getElementById('vista-clientes').classList.add('active');
     document.getElementById('mi-clientes').classList.add('active');
     renderClientes();
+  } else if (v === 'porcontactar') {
+    document.getElementById('vista-porcontactar').classList.add('active');
+    document.getElementById('mi-porcontactar').classList.add('active');
+    renderPorContactar();
   } else if (v === 'detalle') {
     document.getElementById('vista-detalle').classList.add('active');
     document.getElementById('mi-clientes').classList.add('active');
@@ -143,6 +147,7 @@ function irVista(v) {
 function renderTodo() {
   renderTareas();
   if (vistaActual === 'clientes') renderClientes();
+  if (vistaActual === 'porcontactar') renderPorContactar();
   if (vistaActual === 'detalle') renderDetalle();
   if (vistaActual === 'speech' && document.getElementById('speechPick').style.display !== 'none') llenarSelectClientes();
 }
@@ -182,6 +187,72 @@ function renderClientes() {
       <td class="cell-muted">${n}</td>
     </tr>`;
   }).join('');
+}
+
+/* =========================================================
+   Clientes por contactar
+   Un cliente sigue "por contactar" mientras NO tenga un siguiente
+   paso definido: si se le agendó cita/seguimiento entra al pipeline
+   (tareas del día) y sale de aquí; si se marcó "no interesado" también
+   sale. En ambos casos permanece en el Catálogo completo.
+   ========================================================= */
+function estaPorContactar(c) {
+  // Última vez que se marcó "No interesado" (reactivable si luego hubo otra interacción).
+  let ultimoNoInteresado = 0;
+  let ultimaFecha = -1;
+  let ultimoPaso = null;
+  (c.interacciones || []).forEach(it => {
+    const t = new Date(it.fecha).getTime();
+    if (it.paso === 'no_interesado' && t > ultimoNoInteresado) ultimoNoInteresado = t;
+    if (t >= ultimaFecha) { ultimaFecha = t; ultimoPaso = it.paso; }
+  });
+  // Tiene un siguiente paso agendado posterior al último "No interesado" → en pipeline.
+  const tienePendiente = (c.interacciones || []).some(it =>
+    (it.paso === 'cita' || it.paso === 'seguimiento') && it.cuando &&
+    new Date(it.fecha).getTime() > ultimoNoInteresado);
+  if (tienePendiente) return false;
+  // Su estado más reciente es "No interesado" → fuera de la lista.
+  if (ultimoPaso === 'no_interesado') return false;
+  return true;
+}
+
+function renderPorContactar() {
+  const q = (document.getElementById('buscarPC').value || '').toLowerCase().trim();
+  const base = clientes.filter(estaPorContactar);
+  const lista = base
+    .filter(c => !q || (c.nombre + ' ' + (c.giro || '') + ' ' + (c.correo || '')).toLowerCase().includes(q))
+    .sort((a, b) => new Date(b.creadoEn) - new Date(a.creadoEn));
+
+  document.getElementById('porContactarCount').textContent =
+    base.length + (base.length === 1 ? ' cliente' : ' clientes');
+
+  const body = document.getElementById('porContactarBody');
+  const empty = document.getElementById('porContactarEmpty');
+  const wrap = document.querySelector('#vista-porcontactar .table-wrap');
+
+  if (lista.length === 0) {
+    wrap.style.display = 'none';
+    empty.innerHTML = `<div class="empty-state">${base.length === 0
+      ? 'No hay clientes por contactar. Cuando registres clientes nuevos aparecerán aquí.'
+      : 'Sin resultados para tu búsqueda.'}</div>`;
+    return;
+  }
+  wrap.style.display = 'block';
+  empty.innerHTML = '';
+  body.innerHTML = lista.map(c => `
+    <tr onclick="abrirDetalle('${c.id}')">
+      <td class="cell-name">${escapeHtml(c.nombre)}</td>
+      <td class="cell-muted">${escapeHtml(c.telefono || '—')}</td>
+      <td class="cell-muted">${escapeHtml(c.correo || '—')}</td>
+      <td>${c.giro ? `<span class="giro-pill">${escapeHtml(c.giro)}</span>` : '<span class="cell-muted">—</span>'}</td>
+      <td><button class="btn primary sm" onclick="event.stopPropagation();speechDesde('${c.id}')">🎙️ Llamar</button></td>
+    </tr>`).join('');
+}
+
+function speechDesde(id) {
+  speechId = id;
+  irVista('speech');
+  arrancarGuia();
 }
 
 /* ---- modal cliente ---- */
