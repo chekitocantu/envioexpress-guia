@@ -210,6 +210,7 @@ body {
   color: var(--hint); margin: 1.1rem 0 .6rem;
 }
 .task {
+  position: relative;
   background: var(--surface2);
   border: 1px solid var(--line);
   border-left: 3px solid var(--brand);
@@ -220,6 +221,22 @@ body {
   transition: box-shadow .15s, transform .12s;
 }
 .task:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.task .t-del {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 3px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity .12s, background .12s;
+}
+.task:hover .t-del { opacity: .55; }
+.task .t-del:hover { opacity: 1; background: var(--brand-soft); }
 .task.cita { border-left-color: var(--green); }
 .task.seguimiento { border-left-color: var(--amber); }
 .task.vencida { border-left-color: var(--brand); background: var(--brand-soft); }
@@ -258,6 +275,18 @@ tbody tr:hover { background: var(--surface2); }
   background: var(--blue-soft); color: var(--blue);
   padding: 3px 10px; border-radius: 99px;
 }
+.origen-pill {
+  display: inline-block; font-size: 11.5px; font-weight: 600;
+  padding: 3px 10px; border-radius: 99px;
+}
+.origen-pill.propio { background: var(--green-soft); color: var(--green); }
+.origen-pill.leads { background: var(--amber-soft); color: var(--amber); }
+.filter-select {
+  border: 1px solid var(--line); background: var(--surface);
+  border-radius: var(--radius-sm); padding: 8px 12px;
+  font-family: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer;
+}
+.filter-select:focus { outline: none; border-color: var(--blue); }
 .search-box {
   display: flex; align-items: center; gap: 8px;
   background: var(--surface); border: 1px solid var(--line);

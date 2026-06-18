@@ -66,13 +66,18 @@
             <span>🔎</span>
             <input type="text" id="buscar" placeholder="Buscar por nombre, giro…" oninput="renderClientes()">
           </div>
+          <select id="filtroOrigen" class="filter-select" onchange="renderClientes()">
+            <option value="">Todos los orígenes</option>
+            <option value="propio">Propio</option>
+            <option value="leads">Leads</option>
+          </select>
           <button class="btn primary" onclick="abrirModalCliente()">+ Nuevo cliente</button>
         </div>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Giro</th><th>Interacciones</th></tr>
+            <tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Giro</th><th>Origen</th><th>Interacciones</th></tr>
           </thead>
           <tbody id="clientesBody"></tbody>
         </table>
@@ -351,7 +356,13 @@
       <div class="field" id="fTel"><label for="cTel">Teléfono *</label><input type="tel" id="cTel" placeholder="5512345678" inputmode="tel"><span class="err">Mínimo 7 dígitos.</span></div>
       <div class="field"><label for="cCorreo">Correo</label><input type="email" id="cCorreo" placeholder="cliente@correo.com"></div>
     </div>
-    <div class="field"><label for="cGiro">Giro</label><input type="text" id="cGiro" placeholder="Ej. E-commerce, Tienda física, PYME…"></div>
+    <div class="field-row">
+      <div class="field"><label for="cGiro">Giro</label><input type="text" id="cGiro" placeholder="Ej. E-commerce, Tienda física, PYME…"></div>
+      <div class="field"><label for="cOrigen">Origen</label><select id="cOrigen">
+        <option value="propio">Propio</option>
+        <option value="leads">Leads</option>
+      </select></div>
+    </div>
     <div class="field"><label for="cComentarios">Comentarios</label><textarea id="cComentarios" placeholder="Notas generales del cliente…"></textarea></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="cerrarModalCliente()">Cancelar</button>

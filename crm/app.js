@@ -157,8 +157,10 @@ function renderTodo() {
    ========================================================= */
 function renderClientes() {
   const q = (document.getElementById('buscar').value || '').toLowerCase().trim();
+  const origenSel = document.getElementById('filtroOrigen').value;
   const lista = [...clientes]
     .filter(c => !q || (c.nombre + ' ' + (c.giro || '') + ' ' + (c.correo || '')).toLowerCase().includes(q))
+    .filter(c => !origenSel || (c.origen || 'propio') === origenSel)
     .sort((a, b) => new Date(b.creadoEn) - new Date(a.creadoEn));
 
   document.getElementById('clientesCount').textContent =
@@ -184,9 +186,19 @@ function renderClientes() {
       <td class="cell-muted">${escapeHtml(c.telefono || '—')}</td>
       <td class="cell-muted">${escapeHtml(c.correo || '—')}</td>
       <td>${c.giro ? `<span class="giro-pill">${escapeHtml(c.giro)}</span>` : '<span class="cell-muted">—</span>'}</td>
+      <td>${origenPill(c.origen)}</td>
       <td class="cell-muted">${n}</td>
     </tr>`;
   }).join('');
+}
+
+/* Etiqueta visual del origen del cliente. Por compatibilidad, los
+   clientes sin campo `origen` (registrados antes) se tratan como "propio". */
+function origenPill(origen) {
+  const o = origen || 'propio';
+  return o === 'leads'
+    ? '<span class="origen-pill leads">Leads</span>'
+    : '<span class="origen-pill propio">Propio</span>';
 }
 
 /* =========================================================
@@ -264,6 +276,7 @@ function abrirModalCliente(id) {
   document.getElementById('cTel').value = cli ? cli.telefono : '';
   document.getElementById('cCorreo').value = cli ? (cli.correo || '') : '';
   document.getElementById('cGiro').value = cli ? (cli.giro || '') : '';
+  document.getElementById('cOrigen').value = cli ? (cli.origen || 'propio') : 'propio';
   document.getElementById('cComentarios').value = cli ? (cli.comentarios || '') : '';
   document.getElementById('fNombre').classList.remove('invalid');
   document.getElementById('fTel').classList.remove('invalid');
@@ -300,6 +313,7 @@ function guardarCliente() {
   cli.telefono = tel;
   cli.correo = document.getElementById('cCorreo').value.trim();
   cli.giro = document.getElementById('cGiro').value.trim();
+  cli.origen = document.getElementById('cOrigen').value;
   cli.comentarios = document.getElementById('cComentarios').value.trim();
   upsertCliente(cli);
   cerrarModalCliente();
@@ -422,7 +436,7 @@ function tareasPendientes() {
       }
     });
     if (ultima) {
-      out.push({ clienteId: c.id, nombre: c.nombre, telefono: c.telefono, paso: ultima.paso, when: new Date(ultima.cuando) });
+      out.push({ clienteId: c.id, interId: ultima.id, nombre: c.nombre, telefono: c.telefono, paso: ultima.paso, when: new Date(ultima.cuando) });
     }
   });
   return out.sort((a, b) => a.when - b.when);
@@ -465,7 +479,20 @@ function taskHtml(t, vencida) {
       <span class="t-time">${fmtHora(t.when)}</span>
     </div>
     <div class="t-kind">${ic} <b>${PASO_TXT[t.paso]}</b>${vencida ? ' · ' + fmtFechaCorta(t.when) : ''}</div>
+    <button class="t-del" title="Quitar esta tarea" onclick="event.stopPropagation();borrarTarea('${t.clienteId}','${t.interId}')">🗑️</button>
   </div>`;
+}
+
+/* Quita una tarea pendiente: borra esa interacción agendada del cliente.
+   El cliente y sus demás interacciones permanecen intactos. */
+function borrarTarea(clienteId, interId) {
+  const cli = getCliente(clienteId);
+  if (!cli) return;
+  if (!confirm('¿Quitar esta tarea pendiente? El cliente y sus demás datos no se borran.')) return;
+  cli.interacciones = (cli.interacciones || []).filter(it => it.id !== interId);
+  upsertCliente(cli);
+  toast('Tarea quitada', cli.nombre, false);
+  renderTodo();
 }
 
 /* =========================================================
