@@ -411,15 +411,20 @@ function tareasPendientes() {
         if (t > ultimoNoInteresado) ultimoNoInteresado = t;
       }
     });
+    // Solo la última interacción agendada (por fecha de registro) del cliente:
+    // si reprogramó o cambió de paso, vale el estado más reciente, no los previos.
+    let ultima = null;
     (c.interacciones || []).forEach(it => {
       if ((it.paso === 'cita' || it.paso === 'seguimiento') && it.cuando) {
         // Excluir tareas registradas antes (o a la vez) del último "No interesado".
         if (new Date(it.fecha).getTime() <= ultimoNoInteresado) return;
-        out.push({ clienteId: c.id, nombre: c.nombre, telefono: c.telefono, paso: it.paso, when: new Date(it.cuando) });
+        if (!ultima || new Date(it.fecha).getTime() >= new Date(ultima.fecha).getTime()) ultima = it;
       }
     });
+    if (ultima) {
+      out.push({ clienteId: c.id, nombre: c.nombre, telefono: c.telefono, paso: ultima.paso, when: new Date(ultima.cuando) });
+    }
   });
-  // solo la próxima tarea pendiente por cliente+paso ya está incluida; ordenamos por fecha
   return out.sort((a, b) => a.when - b.when);
 }
 
