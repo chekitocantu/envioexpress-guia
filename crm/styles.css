@@ -270,6 +270,26 @@ tbody tr { cursor: pointer; transition: background .12s; }
 tbody tr:hover { background: var(--surface2); }
 .cell-name { font-weight: 600; }
 .cell-muted { color: var(--muted); }
+
+/* ---- Semáforo del cliente (punto de color) ---- */
+.name-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.sem-dot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  flex-shrink: 0; vertical-align: middle; box-shadow: 0 0 0 2px rgba(0,0,0,.04);
+}
+.sem-dot.verde { background: var(--green); }
+.sem-dot.amarillo { background: var(--amber); }
+.sem-dot.rojo { background: var(--brand); }
+.task .t-name { display: inline-flex; align-items: center; gap: 7px; }
+
+/* selector de semáforo en el detalle del cliente */
+.sem-picker { display: inline-flex; align-items: center; gap: 8px; }
+.sem-picker .sem-dot {
+  width: 16px; height: 16px; border: none; cursor: pointer; padding: 0;
+  opacity: .3; transition: opacity .15s, transform .12s; box-shadow: none;
+}
+.sem-picker .sem-dot:hover { opacity: .7; transform: scale(1.1); }
+.sem-picker .sem-dot.active { opacity: 1; box-shadow: 0 0 0 3px rgba(10,37,64,.12); }
 .giro-pill {
   display: inline-block; font-size: 11.5px; font-weight: 600;
   background: var(--blue-soft); color: var(--blue);

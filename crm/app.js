@@ -17,6 +17,17 @@
 const STEP_LABELS = ['Apertura', 'Valor', 'Escucha y objeciones', 'Vs competencia', 'Resultado'];
 const PASO_TXT = { cita: 'Cita concretada', seguimiento: 'Seguimiento', no_interesado: 'No interesado', contacto: 'Contacto' };
 
+/* Semáforo del cliente: estado de la relación, asociado al cliente (no a cada
+   interacción). Valores: 'verde' | 'amarillo' | 'rojo'. Los clientes sin campo
+   `semaforo` (registrados antes) se tratan como 'verde'. */
+const SEMAFORO_VALS = ['verde', 'amarillo', 'rojo'];
+const SEMAFORO_TXT = { verde: 'Verde', amarillo: 'Amarillo', rojo: 'Rojo' };
+function semaforoDe(c) { return SEMAFORO_VALS.includes(c && c.semaforo) ? c.semaforo : 'verde'; }
+function semaforoDot(c) {
+  const s = semaforoDe(c);
+  return `<span class="sem-dot ${s}" title="Semáforo: ${SEMAFORO_TXT[s]}"></span>`;
+}
+
 /* ---------- estado ---------- */
 let clientes = [];
 let snapUnsub = null;
@@ -182,7 +193,7 @@ function renderClientes() {
   body.innerHTML = lista.map(c => {
     const n = (c.interacciones || []).length;
     return `<tr onclick="abrirDetalle('${c.id}')">
-      <td class="cell-name">${escapeHtml(c.nombre)}</td>
+      <td class="cell-name"><span class="name-wrap">${semaforoDot(c)}${escapeHtml(c.nombre)}</span></td>
       <td class="cell-muted">${escapeHtml(c.telefono || '—')}</td>
       <td class="cell-muted">${escapeHtml(c.correo || '—')}</td>
       <td>${c.giro ? `<span class="giro-pill">${escapeHtml(c.giro)}</span>` : '<span class="cell-muted">—</span>'}</td>
@@ -253,7 +264,7 @@ function renderPorContactar() {
   empty.innerHTML = '';
   body.innerHTML = lista.map(c => `
     <tr onclick="abrirDetalle('${c.id}')">
-      <td class="cell-name">${escapeHtml(c.nombre)}</td>
+      <td class="cell-name"><span class="name-wrap">${semaforoDot(c)}${escapeHtml(c.nombre)}</span></td>
       <td class="cell-muted">${escapeHtml(c.telefono || '—')}</td>
       <td class="cell-muted">${escapeHtml(c.correo || '—')}</td>
       <td>${c.giro ? `<span class="giro-pill">${escapeHtml(c.giro)}</span>` : '<span class="cell-muted">—</span>'}</td>
@@ -277,6 +288,7 @@ function abrirModalCliente(id) {
   document.getElementById('cCorreo').value = cli ? (cli.correo || '') : '';
   document.getElementById('cGiro').value = cli ? (cli.giro || '') : '';
   document.getElementById('cOrigen').value = cli ? (cli.origen || 'propio') : 'propio';
+  document.getElementById('cSemaforo').value = cli ? semaforoDe(cli) : 'verde';
   document.getElementById('cComentarios').value = cli ? (cli.comentarios || '') : '';
   document.getElementById('fNombre').classList.remove('invalid');
   document.getElementById('fTel').classList.remove('invalid');
@@ -314,6 +326,7 @@ function guardarCliente() {
   cli.correo = document.getElementById('cCorreo').value.trim();
   cli.giro = document.getElementById('cGiro').value.trim();
   cli.origen = document.getElementById('cOrigen').value;
+  cli.semaforo = document.getElementById('cSemaforo').value;
   cli.comentarios = document.getElementById('cComentarios').value.trim();
   upsertCliente(cli);
   cerrarModalCliente();
@@ -335,6 +348,7 @@ function renderDetalle() {
 
   const telLink = cli.telefono ? `<a href="tel:${escapeHtml(cli.telefono.replace(/\s+/g, ''))}" style="color:var(--brand);font-weight:600;text-decoration:none;">${escapeHtml(cli.telefono)}</a>` : '—';
   document.getElementById('detDatos').innerHTML = `
+    <div class="data-row"><span class="k">Semáforo</span><span class="v">${semaforoSelector(cli)}</span></div>
     <div class="data-row"><span class="k">Teléfono</span><span class="v">${telLink}</span></div>
     <div class="data-row"><span class="k">Correo</span><span class="v">${escapeHtml(cli.correo || '—')}</span></div>
     <div class="data-row"><span class="k">Giro</span><span class="v">${cli.giro ? `<span class="giro-pill">${escapeHtml(cli.giro)}</span>` : '—'}</span></div>
@@ -356,6 +370,24 @@ function renderDetalle() {
       ${it.notas ? `<div class="i-notes">${escapeHtml(it.notas)}</div>` : '<div class="i-notes cell-muted">Sin notas.</div>'}
       ${it.cuando ? `<div class="i-when">📌 ${PASO_TXT[it.paso]}: ${fmtFecha(new Date(it.cuando))}</div>` : ''}
     </div>`).join('');
+}
+
+/* Selector de semáforo en el detalle: tres puntos clicables; el activo se
+   resalta. Cambiar el color guarda al instante en el cliente. */
+function semaforoSelector(cli) {
+  const actual = semaforoDe(cli);
+  return `<span class="sem-picker">` + SEMAFORO_VALS.map(s =>
+    `<button type="button" class="sem-dot ${s}${s === actual ? ' active' : ''}" title="${SEMAFORO_TXT[s]}" onclick="setSemaforo('${cli.id}','${s}')"></button>`
+  ).join('') + `</span>`;
+}
+
+function setSemaforo(id, val) {
+  const cli = getCliente(id);
+  if (!cli || !SEMAFORO_VALS.includes(val) || semaforoDe(cli) === val) return;
+  cli.semaforo = val;
+  upsertCliente(cli);
+  if (vistaActual === 'detalle') renderDetalle();
+  toast('Semáforo actualizado', cli.nombre + ' · ' + SEMAFORO_TXT[val], false);
 }
 
 function eliminarClienteActual() {
@@ -436,7 +468,7 @@ function tareasPendientes() {
       }
     });
     if (ultima) {
-      out.push({ clienteId: c.id, interId: ultima.id, nombre: c.nombre, telefono: c.telefono, paso: ultima.paso, when: new Date(ultima.cuando) });
+      out.push({ clienteId: c.id, interId: ultima.id, nombre: c.nombre, telefono: c.telefono, paso: ultima.paso, semaforo: semaforoDe(c), when: new Date(ultima.cuando) });
     }
   });
   return out.sort((a, b) => a.when - b.when);
@@ -475,7 +507,7 @@ function taskHtml(t, vencida) {
   const ic = t.paso === 'cita' ? '📅' : '🔁';
   return `<div class="task ${vencida ? 'vencida' : t.paso}" onclick="abrirDetalle('${t.clienteId}')">
     <div class="t-top">
-      <span class="t-name">${escapeHtml(t.nombre)}</span>
+      <span class="t-name"><span class="sem-dot ${t.semaforo}" title="Semáforo: ${SEMAFORO_TXT[t.semaforo]}"></span>${escapeHtml(t.nombre)}</span>
       <span class="t-time">${fmtHora(t.when)}</span>
     </div>
     <div class="t-kind">${ic} <b>${PASO_TXT[t.paso]}</b>${vencida ? ' · ' + fmtFechaCorta(t.when) : ''}</div>
