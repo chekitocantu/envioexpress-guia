@@ -19,10 +19,11 @@ const PASO_TXT = { cita: 'Cita concretada', seguimiento: 'Seguimiento', no_inter
 
 /* Semáforo del cliente: estado de la relación, asociado al cliente (no a cada
    interacción). Valores: 'verde' | 'amarillo' | 'rojo'. Los clientes sin campo
-   `semaforo` (registrados antes) se tratan como 'verde'. */
+   `semaforo` (registrados antes) se tratan como 'amarillo' por defecto. */
 const SEMAFORO_VALS = ['verde', 'amarillo', 'rojo'];
 const SEMAFORO_TXT = { verde: 'Verde', amarillo: 'Amarillo', rojo: 'Rojo' };
-function semaforoDe(c) { return SEMAFORO_VALS.includes(c && c.semaforo) ? c.semaforo : 'verde'; }
+const SEMAFORO_DEF = 'amarillo';
+function semaforoDe(c) { return SEMAFORO_VALS.includes(c && c.semaforo) ? c.semaforo : SEMAFORO_DEF; }
 function semaforoDot(c) {
   const s = semaforoDe(c);
   return `<span class="sem-dot ${s}" title="Semáforo: ${SEMAFORO_TXT[s]}"></span>`;
@@ -288,7 +289,7 @@ function abrirModalCliente(id) {
   document.getElementById('cCorreo').value = cli ? (cli.correo || '') : '';
   document.getElementById('cGiro').value = cli ? (cli.giro || '') : '';
   document.getElementById('cOrigen').value = cli ? (cli.origen || 'propio') : 'propio';
-  document.getElementById('cSemaforo').value = cli ? semaforoDe(cli) : 'verde';
+  document.getElementById('cSemaforo').value = cli ? semaforoDe(cli) : SEMAFORO_DEF;
   document.getElementById('cComentarios').value = cli ? (cli.comentarios || '') : '';
   document.getElementById('fNombre').classList.remove('invalid');
   document.getElementById('fTel').classList.remove('invalid');
