@@ -198,6 +198,10 @@ body {
   border: 2px solid var(--surface);
   cursor: pointer;
 }
+.tareas-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: .75rem;
+}
+.tareas-nav .btn { min-width: 36px; padding: 4px 10px; font-size: 13px; }
 .col-tareas h2 {
   font-family: 'Urbanist', sans-serif;
   font-weight: 700;

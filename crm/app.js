@@ -38,6 +38,7 @@ let editId = null;          // cliente en edición (modal)
 let speechId = null;        // cliente en curso del speech
 let cur = 0;                // paso del speech
 let resultadoSel = null;
+let tareasOffset = 0;        // 0 = hoy, 1 = mañana, -1 = ayer…
 
 /* =========================================================
    Firestore
@@ -531,33 +532,56 @@ function tareasPendientes() {
   return out.sort((a, b) => a.when - b.when);
 }
 
-function esHoy(d) {
-  const n = new Date();
-  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+function esMismoDia(d, ref) {
+  return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
+}
+
+function esHoy(d) { return esMismoDia(d, new Date()); }
+
+function diaConOffset(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function navegarTareas(dir) {
+  if (dir === 0) tareasOffset = 0;
+  else tareasOffset += dir;
+  renderTareas();
 }
 
 function renderTareas() {
-  const hoy = new Date();
-  document.getElementById('hoyFecha').textContent = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  const dia = diaConOffset(tareasOffset);
+  const esHoyFlag = tareasOffset === 0;
+
+  document.getElementById('hoyFecha').textContent = dia.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('tareasTitle').textContent = esHoyFlag ? 'Tareas de hoy' : 'Tareas';
+  document.getElementById('btnTareasHoy').style.visibility = esHoyFlag ? 'hidden' : 'visible';
 
   const all = tareasPendientes();
-  const finHoy = new Date(); finHoy.setHours(23, 59, 59, 999);
-  const vencidas = all.filter(t => t.when < new Date() && !esHoy(t.when));
-  const hoyList = all.filter(t => esHoy(t.when));
 
   const cont = document.getElementById('tareasLista');
-  if (vencidas.length === 0 && hoyList.length === 0) {
-    cont.innerHTML = `<div class="task-empty">Nada pendiente para hoy 🎉</div>`;
-    return;
+
+  if (esHoyFlag) {
+    const vencidas = all.filter(t => t.when < new Date() && !esHoy(t.when));
+    const hoyList = all.filter(t => esHoy(t.when));
+    if (vencidas.length === 0 && hoyList.length === 0) {
+      cont.innerHTML = `<div class="task-empty">Nada pendiente para hoy 🎉</div>`;
+      return;
+    }
+    let html = '';
+    if (vencidas.length) html += `<div class="task-group-label">Vencidas</div>` + vencidas.map(t => taskHtml(t, true)).join('');
+    if (hoyList.length) html += `<div class="task-group-label">Hoy</div>` + hoyList.map(t => taskHtml(t, false)).join('');
+    cont.innerHTML = html;
+  } else {
+    const diaList = all.filter(t => esMismoDia(t.when, dia));
+    if (diaList.length === 0) {
+      cont.innerHTML = `<div class="task-empty">Sin tareas para este día.</div>`;
+      return;
+    }
+    cont.innerHTML = diaList.map(t => taskHtml(t, false)).join('');
   }
-  let html = '';
-  if (vencidas.length) {
-    html += `<div class="task-group-label">Vencidas</div>` + vencidas.map(t => taskHtml(t, true)).join('');
-  }
-  if (hoyList.length) {
-    html += `<div class="task-group-label">Hoy</div>` + hoyList.map(t => taskHtml(t, false)).join('');
-  }
-  cont.innerHTML = html;
 }
 
 function taskHtml(t, vencida) {

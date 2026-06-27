@@ -357,7 +357,12 @@
   <!-- DERECHA: TAREAS DEL DÍA (~20%, ancho ajustable con el slider de abajo) -->
   <aside class="col-tareas">
     <div class="tareas-scroll">
-      <h2>Tareas de hoy</h2>
+      <div class="tareas-nav">
+        <button class="btn ghost sm" onclick="navegarTareas(-1)" title="Día anterior">←</button>
+        <button class="btn ghost sm" id="btnTareasHoy" onclick="navegarTareas(0)" title="Ir a hoy">Hoy</button>
+        <button class="btn ghost sm" onclick="navegarTareas(1)" title="Día siguiente">→</button>
+      </div>
+      <h2 id="tareasTitle">Tareas de hoy</h2>
       <div class="day" id="hoyFecha"></div>
       <div id="tareasLista"></div>
     </div>
