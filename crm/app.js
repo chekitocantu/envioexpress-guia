@@ -149,6 +149,11 @@ function irVista(v) {
     document.getElementById('vista-speech').classList.add('active');
     document.getElementById('mi-speech').classList.add('active');
     mostrarSpeechPick();
+  } else if (v === 'interdia') {
+    document.getElementById('vista-interdia').classList.add('active');
+    document.getElementById('mi-interdia').classList.add('active');
+    if (!document.getElementById('interdiaFecha').value) interdiaHoy();
+    else renderInterDia();
   } else if (v === 'maps') {
     document.getElementById('vista-maps').classList.add('active');
     document.getElementById('mi-maps').classList.add('active');
@@ -161,6 +166,7 @@ function renderTodo() {
   if (vistaActual === 'clientes') renderClientes();
   if (vistaActual === 'porcontactar') renderPorContactar();
   if (vistaActual === 'detalle') renderDetalle();
+  if (vistaActual === 'interdia') renderInterDia();
   if (vistaActual === 'speech' && document.getElementById('speechPick').style.display !== 'none') llenarSelectClientes();
 }
 
@@ -277,6 +283,56 @@ function speechDesde(id) {
   speechId = id;
   irVista('speech');
   arrancarGuia();
+}
+
+/* =========================================================
+   Interacciones por día
+   ========================================================= */
+function interdiaHoy() {
+  const hoy = new Date();
+  document.getElementById('interdiaFecha').value = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+  renderInterDia();
+}
+
+function renderInterDia() {
+  const fechaVal = document.getElementById('interdiaFecha').value;
+  if (!fechaVal) return;
+
+  const items = [];
+  clientes.forEach(c => {
+    (c.interacciones || []).forEach(it => {
+      const d = new Date(it.fecha);
+      const dStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      if (dStr === fechaVal) {
+        items.push({ cliente: c, inter: it, date: d });
+      }
+    });
+  });
+  items.sort((a, b) => a.date - b.date);
+
+  document.getElementById('interdiaCount').textContent = items.length + (items.length === 1 ? ' interacción' : ' interacciones');
+
+  const body = document.getElementById('interdiaBody');
+  const empty = document.getElementById('interdiaEmpty');
+  const wrap = document.querySelector('#vista-interdia .table-wrap');
+
+  if (items.length === 0) {
+    wrap.style.display = 'none';
+    empty.innerHTML = '<div class="empty-state">Sin interacciones registradas en esta fecha.</div>';
+    return;
+  }
+  wrap.style.display = 'block';
+  empty.innerHTML = '';
+  body.innerHTML = items.map(it => {
+    const cuando = it.inter.cuando ? fmtFecha(new Date(it.inter.cuando)) : '—';
+    return `<tr onclick="abrirDetalle('${it.cliente.id}')">
+      <td class="cell-muted">${fmtHora(it.date)}</td>
+      <td class="cell-name"><span class="name-wrap">${semaforoDot(it.cliente)}${escapeHtml(it.cliente.nombre)}</span></td>
+      <td><span class="tag ${it.inter.paso}">${PASO_TXT[it.inter.paso] || it.inter.paso}</span></td>
+      <td class="cell-muted">${escapeHtml(it.inter.notas || '—')}</td>
+      <td class="cell-muted">${cuando}</td>
+    </tr>`;
+  }).join('');
 }
 
 /* ---- modal cliente ---- */

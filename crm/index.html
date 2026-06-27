@@ -44,6 +44,9 @@
     <button class="menu-item" id="mi-speech" onclick="irVista('speech')">
       <span class="ic">🎙️</span><span class="txt">Speech Flow</span>
     </button>
+    <button class="menu-item" id="mi-interdia" onclick="irVista('interdia')">
+      <span class="ic">📊</span><span class="txt">Interacciones por día</span>
+    </button>
     <button class="menu-item" id="mi-maps" onclick="irVista('maps')">
       <span class="ic">🗺️</span><span class="txt">Buscar clientes en Maps</span>
     </button>
@@ -312,6 +315,26 @@
         </div>
       </div>
 
+    </section>
+
+    <!-- VISTA: INTERACCIONES POR DÍA -->
+    <section class="view" id="vista-interdia">
+      <div class="view-head">
+        <div class="view-title">Interacciones por día<small id="interdiaCount">0 interacciones</small></div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="date" id="interdiaFecha" class="filter-select" onchange="renderInterDia()">
+          <button class="btn ghost sm" onclick="interdiaHoy()">Hoy</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Hora</th><th>Cliente</th><th>Tipo</th><th>Notas</th><th>Siguiente paso</th></tr>
+          </thead>
+          <tbody id="interdiaBody"></tbody>
+        </table>
+      </div>
+      <div id="interdiaEmpty"></div>
     </section>
 
     <!-- VISTA: BUSCAR CLIENTES EN MAPS -->
